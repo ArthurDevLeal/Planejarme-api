@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String  @id @default(uuid())
+  name         String
+  email        String  @unique
+  passwordHash String
+  phone        String? @unique
+  course       String?
+  institution  String?
+
+  passingScore  Float @default(7.0)
+  maxAbsencePct Float @default(25.0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resetTokens   PasswordResetToken[]
+  disciplines   Discipline[]
+  tasks         Task[]
+  inboxItems    InboxItem[]
+  notifications Notification[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Discipline {
+  id            String  @id @default(uuid())
+  name          String
+  professor     String?
+  classroom     String?
+  workloadHours Int
+  absences      Int     @default(0)
+  gradingSystem String  @default("ARITHMETIC")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  schedules Schedule[]
+  materials Material[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  evaluations Evaluation[]
+  tasks       Task[]
+}
+
+model Schedule {
+  id           String     @id @default(uuid())
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  disciplineId String
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+}
+
+model Material {
+  id           String      @id @default(uuid())
+  title        String
+  type         String
+  url          String
+  fileSizeMb   Float?
+  disciplineId String?
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+}
+
+model Evaluation {
+  id     String   @id @default(uuid())
+  title  String
+  weight Float    @default(1.0)
+  score  Float?
+  date   DateTime
+
+  disciplineId String
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  dueDate     DateTime
+  priority    String    @default("MEDIUM")
+  status      String    @default("PENDING")
+  completedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  disciplineId String?
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InboxItem {
+  id        String   @id @default(uuid())
+  title     String?
+  content   String
+  type      String
+  fileUrl   String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}

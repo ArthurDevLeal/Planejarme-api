@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authRouter } from "./auth-router";
 import { disciplineRouter } from "./discipline-router";
 import { evaluationRouter } from "./evaluation-router";
 import { inboxItemRouter } from "./inbox-item-router";
@@ -10,6 +11,7 @@ import { userRouter } from "./user-router";
 
 const mainRouter = Router();
 
+mainRouter.use("/auth", authRouter);
 mainRouter.use("/users", userRouter);
 mainRouter.use("/disciplines", disciplineRouter);
 mainRouter.use("/evaluations", evaluationRouter);

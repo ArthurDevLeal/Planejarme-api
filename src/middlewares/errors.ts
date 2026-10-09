@@ -1,12 +1,14 @@
 import { NextFunction, Request, Response } from "express";
-import { HttpException } from "../exceptions/root";
+import { normalizeError } from "../utils/normalize-error";
 
-export function ErrorMiddleware(error: HttpException, req: Request, res: Response, next: NextFunction) {
-  res.status(error.statusCode).json({
+export function ErrorMiddleware(error: unknown, req: Request, res: Response, next: NextFunction) {
+  if (res.headersSent) return next(error);
+  const exception = normalizeError(error);
+  res.status(exception.statusCode).json({
     success: false,
     data: null,
-    message: error.message,
-    errorCode: error.errorCode,
-    errors: error.errors,
+    message: exception.message,
+    errorCode: exception.errorCode,
+    errors: exception.errors,
   });
 }

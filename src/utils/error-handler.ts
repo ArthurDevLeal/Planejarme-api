@@ -1,19 +1,12 @@
-import { NextFunction, Request, Response } from "express";
-import { InternalException } from "../exceptions/internal-exception";
-import { ErrorCode, HttpException } from "../exceptions/root";
+import { RequestHandler } from "express";
+import { normalizeError } from "./normalize-error";
 
-export const ErrorHandler = (method: Function) => {
-  return async(req: Request, res: Response, next: NextFunction) => {
+export const ErrorHandler = (method: RequestHandler): RequestHandler => {
+  return async(req, res, next) => {
     try {
       await method(req, res, next);
-    } catch (error: any) {
-      let exception: HttpException;
-      if (error instanceof HttpException) {
-        exception = error;
-      } else {
-        exception = new InternalException("Internal Server Error", error, ErrorCode.INTERNAL_SERVER_ERROR);
-      }
-      next(exception);
+    } catch (error) {
+      next(normalizeError(error));
     }
   };
 };

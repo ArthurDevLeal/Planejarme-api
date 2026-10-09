@@ -1,4 +1,4 @@
-import z from "zod";
+import z from "./zod";
 
 const optionalText = z.preprocess((value) => (value === "" ? undefined : value), z.string().optional());
 

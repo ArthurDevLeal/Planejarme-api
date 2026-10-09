@@ -1,5 +1,5 @@
+import { ValidationException } from "../exceptions/validation";
 import { Request, Response } from "express";
-import { BadRequestsException } from "../exceptions/bad-requests";
 import { NotFoundException } from "../exceptions/not-found";
 import { ErrorCode } from "../exceptions/root";
 import { UserAlreadyExistsException } from "../exceptions/user-already-exists";
@@ -26,12 +26,12 @@ export class UserController {
   GetUserDashboard = ErrorHandler(async (req: Request, res: Response) => {
     const result = UserIdSchema.safeParse(req.params);
     if (!result.success) {
-      throw new BadRequestsException("Invalid user id", ErrorCode.INVALID_DATA);
+      throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
     }
 
     const dashboard = await GetUserDashboardService(result.data.userId);
     if (!dashboard) {
-      throw new NotFoundException("User not found", ErrorCode.USER_NOT_FOUND);
+      throw new NotFoundException("Usuário não encontrado. O registro pode ter sido removido. Atualize a página e tente novamente.", ErrorCode.USER_NOT_FOUND);
     }
 
     return sendSuccess(res, dashboard);
@@ -40,12 +40,12 @@ export class UserController {
   GetUserById = ErrorHandler(async (req: Request, res: Response) => {
     const result = FindUserByIdSchema.safeParse(req.params);
     if (!result.success) {
-      throw new BadRequestsException("Invalid user id", ErrorCode.INVALID_DATA);
+      throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
     }
 
     const user = await FindUserByIdService(result.data);
     if (!user) {
-      throw new NotFoundException("User not found", ErrorCode.USER_NOT_FOUND);
+      throw new NotFoundException("Usuário não encontrado. O registro pode ter sido removido. Atualize a página e tente novamente.", ErrorCode.USER_NOT_FOUND);
     }
 
     return sendSuccess(res, withoutPasswordHash(user));
@@ -54,7 +54,7 @@ export class UserController {
   CreateUser = ErrorHandler(async (req: Request, res: Response) => {
     const result = CreateUserSchema.safeParse(req.body);
     if (!result.success) {
-      throw new BadRequestsException("Invalid data", ErrorCode.INVALID_DATA);
+      throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", result);
     }
 
     let user;
@@ -64,8 +64,10 @@ export class UserController {
       if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
         throw new UserAlreadyExistsException();
       }
+
       throw error;
     }
+
     return sendSuccess(res, withoutPasswordHash(user), "User created", 201);
   });
 
@@ -73,7 +75,7 @@ export class UserController {
     const params = FindUserByIdSchema.safeParse(req.params);
     const body = UpdateUserSchema.safeParse(req.body);
     if (!params.success || !body.success) {
-      throw new BadRequestsException("Invalid data", ErrorCode.INVALID_DATA);
+      throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", params, body);
     }
 
     const user = await UpdateUserService(params.data.id, body.data);
@@ -83,7 +85,7 @@ export class UserController {
   DeleteUser = ErrorHandler(async (req: Request, res: Response) => {
     const result = DeleteUserSchema.safeParse(req.params);
     if (!result.success) {
-      throw new BadRequestsException("Invalid user id", ErrorCode.INVALID_DATA);
+      throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
     }
 
     await DeleteUserService(result.data);

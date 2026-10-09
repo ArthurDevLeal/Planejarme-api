@@ -1,3 +1,4 @@
+import { ValidationException } from "../exceptions/validation";
 import { compare } from "bcrypt";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
@@ -14,22 +15,22 @@ export class AuthController {
   SingIn = ErrorHandler(async (req: Request, res: Response) => {
     const result = SignInSchema.safeParse(req.body);
     if (!result.success) {
-      throw new BadRequestsException("Invalid data", ErrorCode.INVALID_DATA);
+      throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", result);
     }
 
     const emailSchema = FindUserByEmailSchema.safeParse({ email: result.data.email });
     if (!emailSchema.success) {
-      throw new BadRequestsException("Invalid email", ErrorCode.INVALID_DATA);
+      throw new ValidationException("O e-mail informado é inválido. Confira o endereço.", emailSchema);
     }
 
     const user = await FindUserByEmailService(emailSchema.data);
     if (!user) {
-      throw new NotFoundException("User not found", ErrorCode.USER_NOT_FOUND);
+      throw new NotFoundException("Não encontramos uma conta com esse e-mail. Confira o e-mail ou crie uma conta.", ErrorCode.USER_NOT_FOUND);
     }
 
     const isPasswordValid = await compare(result.data.password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new BadRequestsException("Invalid password", ErrorCode.INVALID_CREDENTIALS);
+      throw new BadRequestsException("E-mail ou senha incorretos. Confira os dados e tente novamente.", ErrorCode.INVALID_CREDENTIALS);
     }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, { expiresIn: "7d" });

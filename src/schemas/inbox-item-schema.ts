@@ -1,4 +1,4 @@
-import z from "zod";
+import z from "./zod";
 
 const CreateInboxItemSchema = z.object({
   title: z.string().max(200).optional(),

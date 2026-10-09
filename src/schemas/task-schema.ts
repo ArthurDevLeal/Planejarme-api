@@ -1,4 +1,4 @@
-import z from "zod";
+import z from "./zod";
 
 const CreateTaskSchema = z.object({
   title: z.string().min(1).max(200),

@@ -1,12 +1,14 @@
 import z from "zod";
 
+const optionalText = z.preprocess((value) => (value === "" ? undefined : value), z.string().optional());
+
 const CreateUserSchema = z.object({
   name: z.string().min(1).max(100),
   email: z.email(),
   password: z.string().min(6).max(255),
-  phone: z.string().optional(),
-  course: z.string().optional(),
-  institution: z.string().optional(),
+  phone: optionalText,
+  course: optionalText,
+  institution: optionalText,
 });
 
 const FindUserByIdSchema = z.object({

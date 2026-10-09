@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { BadRequestsException } from "../exceptions/bad-requests";
 import { NotFoundException } from "../exceptions/not-found";
 import { ErrorCode } from "../exceptions/root";
+import { UserAlreadyExistsException } from "../exceptions/user-already-exists";
 import {
   CreateUserSchema,
   DeleteUserSchema,
@@ -56,7 +57,15 @@ export class UserController {
       throw new BadRequestsException("Invalid data", ErrorCode.INVALID_DATA);
     }
 
-    const user = await CreateUserService(result.data);
+    let user;
+    try {
+      user = await CreateUserService(result.data);
+    } catch (error) {
+      if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
+        throw new UserAlreadyExistsException();
+      }
+      throw error;
+    }
     return sendSuccess(res, withoutPasswordHash(user), "User created", 201);
   });
 

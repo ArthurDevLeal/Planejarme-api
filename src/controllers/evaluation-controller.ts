@@ -1,14 +1,14 @@
-import { AuthorizeRequestService } from "../services/authorization-service";
-import { ValidationException } from "../exceptions/validation";
+import { AuthorizeRequestService } from "../services/authorization-service.ts";
+import { ValidationException } from "../exceptions/validation.ts";
 import { Request, Response } from "express";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 import {
   CreateEvaluationSchema,
   DisciplineIdSchema,
   EvaluationIdSchema,
   UpdateEvaluationSchema,
-} from "../schemas/evaluation-schema";
+} from "../schemas/evaluation-schema.ts";
 import {
   CreateEvaluationService,
   DeleteEvaluationService,
@@ -16,9 +16,9 @@ import {
   FindEvaluationSummaryService,
   FindEvaluationsByDisciplineService,
   UpdateEvaluationService,
-} from "../services/evaluation-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../services/evaluation-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class EvaluationController {
   GetEvaluationSummary = ErrorHandler(async (req: Request, res: Response) => {

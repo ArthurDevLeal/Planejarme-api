@@ -1,8 +1,8 @@
-import { prisma } from "../../lib/prisma";
-import { BadRequestsException } from "../exceptions/bad-requests";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
-import { brasiliaDate, scheduleAbsences } from "../utils/academic-date";
+import { prisma } from "../../lib/prisma.ts";
+import { BadRequestsException } from "../exceptions/bad-requests.ts";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
+import { brasiliaDate, scheduleAbsences } from "../utils/academic-date.ts";
 
 export async function SetAttendanceService(userId: string, scheduleId: string, attended: boolean, requestedDate?: string) {
   const today = brasiliaDate();

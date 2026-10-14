@@ -1,5 +1,5 @@
-import { prisma } from "../../lib/prisma";
-import { CreateInboxItemSchemaType, UpdateInboxItemSchemaType } from "../schemas/inbox-item-schema";
+import { prisma } from "../../lib/prisma.ts";
+import { CreateInboxItemSchemaType, UpdateInboxItemSchemaType } from "../schemas/inbox-item-schema.ts";
 
 export function CreateInboxItemService(data: CreateInboxItemSchemaType) {
   return prisma.inboxItem.create({ data });

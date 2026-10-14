@@ -1,15 +1,15 @@
-import { ValidationException } from "../exceptions/validation";
+import { ValidationException } from "../exceptions/validation.ts";
 import { compare } from "bcrypt";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { BadRequestsException } from "../exceptions/bad-requests";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
-import { SignInSchema } from "../schemas/auth-schema";
-import { FindUserByEmailSchema } from "../schemas/user-schema";
-import { FindUserByEmailService } from "../services/user/find-user-by-email";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+import { BadRequestsException } from "../exceptions/bad-requests.ts";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
+import { SignInSchema } from "../schemas/auth-schema.ts";
+import { FindUserByEmailSchema } from "../schemas/user-schema.ts";
+import { FindUserByEmailService } from "../services/user/find-user-by-email.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class AuthController {
   SingIn = ErrorHandler(async (req: Request, res: Response) => {

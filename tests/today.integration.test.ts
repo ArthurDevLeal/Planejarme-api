@@ -4,10 +4,10 @@ import { test } from "node:test";
 import { randomUUID } from "node:crypto";
 import express from "express";
 import jwt from "jsonwebtoken";
-import { mainRouter } from "../src/routes/main-router";
-import { ErrorMiddleware } from "../src/middlewares/errors";
-import { prisma } from "../lib/prisma";
-import { brasiliaDate } from "../src/utils/academic-date";
+import { mainRouter } from "../src/routes/main-router.ts";
+import { ErrorMiddleware } from "../src/middlewares/errors.ts";
+import { prisma } from "../lib/prisma.ts";
+import { brasiliaDate } from "../src/utils/academic-date.ts";
 
 test("dashboard: persistência, limites de acesso, dias pendentes e conclusão reversível", { skip: process.env.RUN_DB_TESTS !== "1" }, async () => {
   const app = express();

@@ -2,10 +2,10 @@
 
 import cors from "cors";
 import express, { urlencoded } from "express";
-import { NotFoundException } from "./exceptions/not-found";
-import { ErrorCode } from "./exceptions/root";
-import { ErrorMiddleware } from "./middlewares/errors";
-import { mainRouter } from "./routes/main-router";
+import { NotFoundException } from "./exceptions/not-found.ts";
+import { ErrorCode } from "./exceptions/root.ts";
+import { ErrorMiddleware } from "./middlewares/errors.ts";
+import { mainRouter } from "./routes/main-router.ts";
 
 const app = express();
 const PORT = process.env.PORT || 3001;

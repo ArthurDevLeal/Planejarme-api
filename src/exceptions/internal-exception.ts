@@ -1,4 +1,4 @@
-import { ErrorCode, HttpException } from "./root";
+import { ErrorCode, HttpException } from "./root.ts";
 
 export class InternalException extends HttpException {
   constructor(message: string, error: unknown, errorCode: ErrorCode) {

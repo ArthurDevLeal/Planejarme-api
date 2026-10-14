@@ -4,11 +4,11 @@ import {
   calculateAbsenceLimit,
   calculateAbsenceRisk,
   validateAbsenceWorkloadCeiling,
-} from "../src/utils/absence-rules";
+} from "../src/utils/absence-rules.ts";
 import {
   CreateDisciplineSchema,
   UpdateDisciplineSchema,
-} from "../src/schemas/discipline-schema";
+} from "../src/schemas/discipline-schema.ts";
 
 test("RN01: cálculo do limite máximo de faltas com base na carga horária e percentual", () => {
   // Padrão 25%
@@ -211,14 +211,14 @@ test(
   { skip: process.env.RUN_DB_TESTS !== "1" },
   async () => {
     const { randomUUID } = await import("node:crypto");
-    const { prisma } = await import("../lib/prisma");
-    const { SetAttendanceService } = await import("../src/services/attendance-service");
+    const { prisma } = await import("../lib/prisma.ts");
+    const { SetAttendanceService } = await import("../src/services/attendance-service.ts");
     const {
       CreateDisciplineService,
       UpdateDisciplineService,
-    } = await import("../src/services/discipline-service");
-    const { GetUserDashboardService } = await import("../src/services/user/get-user-dashboard");
-    const { brasiliaDate } = await import("../src/utils/academic-date");
+    } = await import("../src/services/discipline-service.ts");
+    const { GetUserDashboardService } = await import("../src/services/user/get-user-dashboard.ts");
+    const { brasiliaDate } = await import("../src/utils/academic-date.ts");
 
     const today = brasiliaDate();
     const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();

@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { UnauthorizedException } from "../exceptions/unauthorized";
-import { ErrorCode } from "../exceptions/root";
+import { UnauthorizedException } from "../exceptions/unauthorized.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 
 type JwtPayload = {
   id: string;

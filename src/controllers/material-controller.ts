@@ -1,19 +1,19 @@
 import { Request, Response } from "express";
 import crypto from "node:crypto";
-import { BadRequestsException } from "../exceptions/bad-requests";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
-import { UnauthorizedException } from "../exceptions/unauthorized";
-import { ValidationException } from "../exceptions/validation";
-import { supabase, SUPABASE_STORAGE_BUCKET } from "../lib/supabase";
+import { BadRequestsException } from "../exceptions/bad-requests.ts";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
+import { UnauthorizedException } from "../exceptions/unauthorized.ts";
+import { ValidationException } from "../exceptions/validation.ts";
+import { supabase, SUPABASE_STORAGE_BUCKET } from "../lib/supabase.ts";
 import {
   CreateMaterialSchema,
   DisciplineIdSchema,
   GetMaterialsQuerySchema,
   MaterialIdSchema,
   UpdateMaterialSchema,
-} from "../schemas/material-schema";
-import { UserIdSchema } from "../schemas/user-schema";
+} from "../schemas/material-schema.ts";
+import { UserIdSchema } from "../schemas/user-schema.ts";
 import {
   CreateMaterialService,
   DeleteMaterialService,
@@ -21,9 +21,9 @@ import {
   FindMaterialsByDisciplineService,
   FindMaterialsByUserService,
   UpdateMaterialService,
-} from "../services/material-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../services/material-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 function decodeOriginalName(originalname: string): string {
   try {

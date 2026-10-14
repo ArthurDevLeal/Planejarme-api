@@ -1,6 +1,6 @@
 import { hash } from "bcrypt";
-import { prisma } from "../../../lib/prisma";
-import { UpdateUserSchemaType } from "../../schemas/user-schema";
+import { prisma } from "../../../lib/prisma.ts";
+import { UpdateUserSchemaType } from "../../schemas/user-schema.ts";
 
 export async function UpdateUserService(id: string, args: UpdateUserSchemaType) {
   const { password, ...userData } = args;

@@ -1,6 +1,6 @@
-import { brasiliaDate, scheduleAbsences } from "../../utils/academic-date";
-import { prisma } from "../../../lib/prisma";
-import { EnsureUserHasCurrentSemester } from "../semester-service";
+import { brasiliaDate, scheduleAbsences } from "../../utils/academic-date.ts";
+import { prisma } from "../../../lib/prisma.ts";
+import { EnsureUserHasCurrentSemester } from "../semester-service.ts";
 
 export async function GetUserDashboardService(
   userId: string,

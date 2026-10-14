@@ -1,3 +1,3 @@
-import z from "./zod";
+import z from "./zod.ts";
 export const SetAttendanceSchema = z.object({ attended: z.boolean() });
 export const AttendanceDateSchema = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });

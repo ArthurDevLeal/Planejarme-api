@@ -1,13 +1,13 @@
-import { ValidationException } from "../exceptions/validation";
+import { ValidationException } from "../exceptions/validation.ts";
 import { Request, Response } from "express";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 import {
   CreateNotificationSchema,
   NotificationIdSchema,
   UpdateNotificationSchema,
   UserIdSchema,
-} from "../schemas/notification-schema";
+} from "../schemas/notification-schema.ts";
 import {
   CreateNotificationService,
   DeleteNotificationService,
@@ -16,9 +16,9 @@ import {
   FindUnreadNotificationsByUserService,
   MarkNotificationAsReadService,
   UpdateNotificationService,
-} from "../services/notification-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../services/notification-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class NotificationController {
   GetUnreadNotificationsByUser = ErrorHandler(async (req: Request, res: Response) => {

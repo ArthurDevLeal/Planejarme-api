@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
-import { AuthorizeRequestService } from "../services/authorization-service";
-import { ValidationException } from "../exceptions/validation";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
+import { AuthorizeRequestService } from "../services/authorization-service.ts";
+import { ValidationException } from "../exceptions/validation.ts";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 import {
   CreateSemesterSchema,
   SemesterIdSchema,
   UpdateSemesterSchema,
   UserIdSchema,
-} from "../schemas/semester-schema";
+} from "../schemas/semester-schema.ts";
 import {
   CreateSemesterService,
   DeleteSemesterService,
@@ -16,9 +16,9 @@ import {
   FindSemestersByUserService,
   SetCurrentSemesterService,
   UpdateSemesterService,
-} from "../services/semester-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../services/semester-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class SemesterController {
   GetSemestersByUser = ErrorHandler(async (req: Request, res: Response) => {

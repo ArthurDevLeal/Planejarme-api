@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { InboxItemController } from "../controllers/inbox-item-controller";
+import { InboxItemController } from "../controllers/inbox-item-controller.ts";
 
 const inboxItemRouter = Router();
 const controller = new InboxItemController();

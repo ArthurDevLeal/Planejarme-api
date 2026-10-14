@@ -3,14 +3,14 @@ import { after, before, test } from "node:test";
 import type { Server } from "node:http";
 import express from "express";
 import jwt from "jsonwebtoken";
-import { prisma } from "../lib/prisma";
-import { ErrorMiddleware } from "../src/middlewares/errors";
+import { prisma } from "../lib/prisma.ts";
+import { ErrorMiddleware } from "../src/middlewares/errors.ts";
 
 let server: Server;
 let baseUrl = "";
 
 before(async () => {
-  const { mainRouter } = await import("../src/routes/main-router");
+  const { mainRouter } = await import("../src/routes/main-router.ts");
   const app = express();
   app.use(express.json());
   app.use(mainRouter);

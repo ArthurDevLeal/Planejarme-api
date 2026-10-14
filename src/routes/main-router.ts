@@ -1,15 +1,15 @@
 import { Router } from "express";
-import { authRouter } from "./auth-router";
-import { disciplineRouter } from "./discipline-router";
-import { evaluationRouter } from "./evaluation-router";
-import { inboxItemRouter } from "./inbox-item-router";
-import { materialRouter } from "./material-router";
-import { notificationRouter } from "./notification-router";
-import { scheduleRouter } from "./schedule-router";
-import { taskRouter } from "./task-router";
-import { userRouter } from "./user-router";
+import { authRouter } from "./auth-router.ts";
+import { disciplineRouter } from "./discipline-router.ts";
+import { evaluationRouter } from "./evaluation-router.ts";
+import { inboxItemRouter } from "./inbox-item-router.ts";
+import { materialRouter } from "./material-router.ts";
+import { notificationRouter } from "./notification-router.ts";
+import { scheduleRouter } from "./schedule-router.ts";
+import { taskRouter } from "./task-router.ts";
+import { userRouter } from "./user-router.ts";
 
-import { semesterRouter } from "./semester-router";
+import { semesterRouter } from "./semester-router.ts";
 
 const mainRouter = Router();
 

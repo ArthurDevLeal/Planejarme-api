@@ -1,5 +1,5 @@
-import { prisma } from "../../../lib/prisma";
-import { FindUserByIdSchemaType } from "../../schemas/user-schema";
+import { prisma } from "../../../lib/prisma.ts";
+import { FindUserByIdSchemaType } from "../../schemas/user-schema.ts";
 
 export async function FindUserByIdService(arg: FindUserByIdSchemaType) {
   return await prisma.user.findUnique({

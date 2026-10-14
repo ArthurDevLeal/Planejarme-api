@@ -1,23 +1,23 @@
-import { AuthorizeRequestService } from "../services/authorization-service";
-import { ValidationException } from "../exceptions/validation";
+import { AuthorizeRequestService } from "../services/authorization-service.ts";
+import { ValidationException } from "../exceptions/validation.ts";
 import { Request, Response } from "express";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
-import { UserAlreadyExistsException } from "../exceptions/user-already-exists";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
+import { UserAlreadyExistsException } from "../exceptions/user-already-exists.ts";
 import {
   CreateUserSchema,
   DeleteUserSchema,
   FindUserByIdSchema,
   UpdateUserSchema,
   UserIdSchema,
-} from "../schemas/user-schema";
-import { CreateUserService } from "../services/user/create-user";
-import { DeleteUserService } from "../services/user/delete-user";
-import { FindUserByIdService } from "../services/user/find-user-by-id";
-import { GetUserDashboardService } from "../services/user/get-user-dashboard";
-import { UpdateUserService } from "../services/user/update-user";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../schemas/user-schema.ts";
+import { CreateUserService } from "../services/user/create-user.ts";
+import { DeleteUserService } from "../services/user/delete-user.ts";
+import { FindUserByIdService } from "../services/user/find-user-by-id.ts";
+import { GetUserDashboardService } from "../services/user/get-user-dashboard.ts";
+import { UpdateUserService } from "../services/user/update-user.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 function withoutPasswordHash<T extends { passwordHash: string }>({ passwordHash: _, ...user }: T) {
   return user;

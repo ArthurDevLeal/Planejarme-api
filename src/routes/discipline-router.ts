@@ -1,6 +1,6 @@
-import { AuthMiddleware } from "../middlewares/auth";
+import { AuthMiddleware } from "../middlewares/auth.ts";
 import { Router } from "express";
-import { DisciplineController } from "../controllers/discipline-controller";
+import { DisciplineController } from "../controllers/discipline-controller.ts";
 
 const disciplineRouter = Router();
 const controller = new DisciplineController();

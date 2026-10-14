@@ -1,7 +1,7 @@
-import { AttendanceController } from "../controllers/attendance-controller";
-import { AuthMiddleware } from "../middlewares/auth";
+import { AttendanceController } from "../controllers/attendance-controller.ts";
+import { AuthMiddleware } from "../middlewares/auth.ts";
 import { Router } from "express";
-import { ScheduleController } from "../controllers/schedule-controller";
+import { ScheduleController } from "../controllers/schedule-controller.ts";
 
 const scheduleRouter = Router();
 const controller = new ScheduleController();

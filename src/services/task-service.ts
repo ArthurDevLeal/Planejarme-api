@@ -1,7 +1,7 @@
-import { prisma } from "../../lib/prisma";
-import { CreateTaskSchemaType, UpdateTaskSchemaType } from "../schemas/task-schema";
+import { prisma } from "../../lib/prisma.ts";
+import { CreateTaskSchemaType, UpdateTaskSchemaType } from "../schemas/task-schema.ts";
 
-import { EnsureUserHasCurrentSemester } from "./semester-service";
+import { EnsureUserHasCurrentSemester } from "./semester-service.ts";
 
 export async function CreateTaskService(data: CreateTaskSchemaType) {
   let semesterId = data.semesterId;

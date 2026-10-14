@@ -1,5 +1,5 @@
-import { BadRequestsException } from "./bad-requests";
-import { ErrorCode } from "./root";
+import { BadRequestsException } from "./bad-requests.ts";
+import { ErrorCode } from "./root.ts";
 
 export class UserAlreadyExistsException extends BadRequestsException {
   constructor() {

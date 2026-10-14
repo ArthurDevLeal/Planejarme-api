@@ -1,5 +1,5 @@
-import { prisma } from "../../lib/prisma";
-import { CreateEvaluationSchemaType, UpdateEvaluationSchemaType } from "../schemas/evaluation-schema";
+import { prisma } from "../../lib/prisma.ts";
+import { CreateEvaluationSchemaType, UpdateEvaluationSchemaType } from "../schemas/evaluation-schema.ts";
 
 export function CreateEvaluationService(data: CreateEvaluationSchemaType) {
   return prisma.evaluation.create({ data });

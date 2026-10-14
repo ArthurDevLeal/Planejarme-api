@@ -1,5 +1,5 @@
-import { ErrorCode, HttpException } from "../exceptions/root";
-import { UserAlreadyExistsException } from "../exceptions/user-already-exists";
+import { ErrorCode, HttpException } from "../exceptions/root.ts";
+import { UserAlreadyExistsException } from "../exceptions/user-already-exists.ts";
 
 const resources: Record<string, { code: ErrorCode; label: string }> = {
   User: { code: ErrorCode.USER_NOT_FOUND, label: "Usuário" },

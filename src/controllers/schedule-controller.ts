@@ -1,15 +1,15 @@
-import { AuthorizeRequestService } from "../services/authorization-service";
-import { ValidationException } from "../exceptions/validation";
+import { AuthorizeRequestService } from "../services/authorization-service.ts";
+import { ValidationException } from "../exceptions/validation.ts";
 import { Request, Response } from "express";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 import {
   CreateScheduleSchema,
   DisciplineIdSchema,
   ScheduleIdSchema,
   UpdateScheduleSchema,
-} from "../schemas/schedule-schema";
-import { UserIdSchema } from "../schemas/user-schema";
+} from "../schemas/schedule-schema.ts";
+import { UserIdSchema } from "../schemas/user-schema.ts";
 import {
   CreateScheduleService,
   DeleteScheduleService,
@@ -18,9 +18,9 @@ import {
   FindSchedulesByUserService,
   UpdateScheduleService,
   UpdateScheduleSeriesService,
-} from "../services/schedule-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../services/schedule-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class ScheduleController {
   GetSchedulesByUser = ErrorHandler(async (req: Request, res: Response) => {

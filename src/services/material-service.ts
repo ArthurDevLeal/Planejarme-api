@@ -1,5 +1,5 @@
-import { prisma } from "../../lib/prisma";
-import { CreateMaterialSchemaType, UpdateMaterialSchemaType } from "../schemas/material-schema";
+import { prisma } from "../../lib/prisma.ts";
+import { CreateMaterialSchemaType, UpdateMaterialSchemaType } from "../schemas/material-schema.ts";
 
 export function CreateMaterialService(data: CreateMaterialSchemaType) {
   return prisma.material.create({

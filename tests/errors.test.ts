@@ -3,13 +3,13 @@ import { after, before, test } from "node:test";
 import type { Server } from "node:http";
 import express from "express";
 import jwt from "jsonwebtoken";
-import { ErrorCode, HttpException } from "../src/exceptions/root";
-import { ValidationException } from "../src/exceptions/validation";
-import { AuthMiddleware } from "../src/middlewares/auth";
-import { ErrorMiddleware } from "../src/middlewares/errors";
-import { CreateUserSchema } from "../src/schemas/user-schema";
-import { normalizeError } from "../src/utils/normalize-error";
-import { ErrorHandler } from "../src/utils/error-handler";
+import { ErrorCode, HttpException } from "../src/exceptions/root.ts";
+import { ValidationException } from "../src/exceptions/validation.ts";
+import { AuthMiddleware } from "../src/middlewares/auth.ts";
+import { ErrorMiddleware } from "../src/middlewares/errors.ts";
+import { CreateUserSchema } from "../src/schemas/user-schema.ts";
+import { normalizeError } from "../src/utils/normalize-error.ts";
+import { ErrorHandler } from "../src/utils/error-handler.ts";
 
 let server: Server;
 let baseUrl: string;
@@ -20,7 +20,7 @@ before(async () => {
   process.env.JWT_SECRET = testSecret;
   // Os testes das rotas só enviam dados inválidos, antes de qualquer consulta.
   process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/test";
-  const { mainRouter } = await import("../src/routes/main-router");
+  const { mainRouter } = await import("../src/routes/main-router.ts");
   const app = express();
   app.use(express.json({ limit: "1kb" }));
   app.use(mainRouter);

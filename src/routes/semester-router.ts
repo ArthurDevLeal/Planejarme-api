@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { AuthMiddleware } from "../middlewares/auth";
-import { SemesterController } from "../controllers/semester-controller";
+import { AuthMiddleware } from "../middlewares/auth.ts";
+import { SemesterController } from "../controllers/semester-controller.ts";
 
 const semesterRouter = Router();
 const controller = new SemesterController();

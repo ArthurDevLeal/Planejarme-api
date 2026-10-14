@@ -1,5 +1,5 @@
-import { prisma } from "../../../lib/prisma";
-import { DeleteUserSchemaType } from "../../schemas/user-schema";
+import { prisma } from "../../../lib/prisma.ts";
+import { DeleteUserSchemaType } from "../../schemas/user-schema.ts";
 
 export async function DeleteUserService(arg: DeleteUserSchemaType) {
   return await prisma.user.delete({

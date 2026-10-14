@@ -1,5 +1,5 @@
-import { prisma } from "../../lib/prisma";
-import { CreateNotificationSchemaType, UpdateNotificationSchemaType } from "../schemas/notification-schema";
+import { prisma } from "../../lib/prisma.ts";
+import { CreateNotificationSchemaType, UpdateNotificationSchemaType } from "../schemas/notification-schema.ts";
 
 export function CreateNotificationService(data: CreateNotificationSchemaType) {
   return prisma.notification.create({ data });

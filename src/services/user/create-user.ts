@@ -1,6 +1,6 @@
 import { hash } from "bcrypt";
-import { prisma } from "../../../lib/prisma";
-import { CreateUserSchemaType } from "../../schemas/user-schema";
+import { prisma } from "../../../lib/prisma.ts";
+import { CreateUserSchemaType } from "../../schemas/user-schema.ts";
 
 export async function CreateUserService(args: CreateUserSchemaType) {
   return await prisma.user.create({

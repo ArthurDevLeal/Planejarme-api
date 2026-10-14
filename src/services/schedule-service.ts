@@ -1,5 +1,5 @@
-import { prisma } from "../../lib/prisma";
-import { CreateScheduleSchemaType, UpdateScheduleSchemaType } from "../schemas/schedule-schema";
+import { prisma } from "../../lib/prisma.ts";
+import { CreateScheduleSchemaType, UpdateScheduleSchemaType } from "../schemas/schedule-schema.ts";
 
 export function CreateScheduleService(data: CreateScheduleSchemaType) {
   return prisma.schedule.create({ data });

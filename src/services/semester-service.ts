@@ -1,8 +1,8 @@
-import { prisma } from "../../lib/prisma";
+import { prisma } from "../../lib/prisma.ts";
 import type {
   CreateSemesterSchemaType,
   UpdateSemesterSchemaType,
-} from "../schemas/semester-schema";
+} from "../schemas/semester-schema.ts";
 
 export function FindSemestersByUserService(userId: string) {
   return prisma.semester.findMany({

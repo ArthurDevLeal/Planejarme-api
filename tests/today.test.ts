@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { brasiliaDate, scheduleAbsences, scheduledClassCount } from "../src/utils/academic-date";
+import { brasiliaDate, scheduleAbsences, scheduledClassCount } from "../src/utils/academic-date.ts";
 
 test("contagem semanal inclui hoje, dias não visitados e preserva início da integração", () => {
   const since = new Date("2026-10-12T00:00:00Z");

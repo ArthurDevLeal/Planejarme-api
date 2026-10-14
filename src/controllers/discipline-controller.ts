@@ -1,23 +1,23 @@
-import { AuthorizeRequestService } from "../services/authorization-service";
-import { ValidationException } from "../exceptions/validation";
+import { AuthorizeRequestService } from "../services/authorization-service.ts";
+import { ValidationException } from "../exceptions/validation.ts";
 import { Request, Response } from "express";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 import {
   CreateDisciplineSchema,
   DisciplineIdSchema,
   UpdateDisciplineSchema,
   UserIdSchema,
-} from "../schemas/discipline-schema";
+} from "../schemas/discipline-schema.ts";
 import {
   CreateDisciplineService,
   DeleteDisciplineService,
   FindDisciplineByIdService,
   FindDisciplinesByUserService,
   UpdateDisciplineService,
-} from "../services/discipline-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../services/discipline-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class DisciplineController {
   GetDisciplineById = ErrorHandler(async (req: Request, res: Response) => {

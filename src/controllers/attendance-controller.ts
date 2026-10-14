@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { ValidationException } from "../exceptions/validation";
-import { AttendanceDateSchema, SetAttendanceSchema } from "../schemas/attendance-schema";
-import { ScheduleIdSchema } from "../schemas/schedule-schema";
-import { SetAttendanceService } from "../services/attendance-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+import { ValidationException } from "../exceptions/validation.ts";
+import { AttendanceDateSchema, SetAttendanceSchema } from "../schemas/attendance-schema.ts";
+import { ScheduleIdSchema } from "../schemas/schedule-schema.ts";
+import { SetAttendanceService } from "../services/attendance-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class AttendanceController {
   SetAttendance = ErrorHandler(async (req: Request, res: Response) => {

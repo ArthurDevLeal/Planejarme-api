@@ -1,6 +1,6 @@
-import { AuthMiddleware } from "../middlewares/auth";
+import { AuthMiddleware } from "../middlewares/auth.ts";
 import { Router } from "express";
-import { EvaluationController } from "../controllers/evaluation-controller";
+import { EvaluationController } from "../controllers/evaluation-controller.ts";
 
 const evaluationRouter = Router();
 const controller = new EvaluationController();

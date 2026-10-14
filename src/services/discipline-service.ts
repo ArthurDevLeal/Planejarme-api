@@ -1,10 +1,10 @@
-import { prisma } from "../../lib/prisma";
-import { BadRequestsException } from "../exceptions/bad-requests";
-import { ErrorCode } from "../exceptions/root";
-import { CreateDisciplineSchemaType, UpdateDisciplineSchemaType } from "../schemas/discipline-schema";
-import { brasiliaDate, scheduleAbsences } from "../utils/academic-date";
+import { prisma } from "../../lib/prisma.ts";
+import { BadRequestsException } from "../exceptions/bad-requests.ts";
+import { ErrorCode } from "../exceptions/root.ts";
+import { CreateDisciplineSchemaType, UpdateDisciplineSchemaType } from "../schemas/discipline-schema.ts";
+import { brasiliaDate, scheduleAbsences } from "../utils/academic-date.ts";
 
-import { EnsureUserHasCurrentSemester } from "./semester-service";
+import { EnsureUserHasCurrentSemester } from "./semester-service.ts";
 
 export async function CreateDisciplineService(data: CreateDisciplineSchemaType) {
   if (data.absences !== undefined && data.absences > data.workloadHours) {

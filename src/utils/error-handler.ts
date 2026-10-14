@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { normalizeError } from "./normalize-error";
+import { normalizeError } from "./normalize-error.ts";
 
 export const ErrorHandler = (method: RequestHandler): RequestHandler => {
   return async(req, res, next) => {

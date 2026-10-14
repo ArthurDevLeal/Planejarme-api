@@ -1,4 +1,4 @@
-import z from "./zod";
+import z from "./zod.ts";
 
 const CreateScheduleSchema = z.object({
   dayOfWeek: z.coerce.number().int().min(0).max(6),

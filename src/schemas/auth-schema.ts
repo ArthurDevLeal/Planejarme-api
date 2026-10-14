@@ -1,4 +1,4 @@
-import z from "./zod";
+import z from "./zod.ts";
 
 const SignInSchema = z.object({
   email: z.email(),

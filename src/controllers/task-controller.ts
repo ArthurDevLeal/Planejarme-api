@@ -1,9 +1,9 @@
-import { AuthorizeRequestService } from "../services/authorization-service";
-import { ValidationException } from "../exceptions/validation";
+import { AuthorizeRequestService } from "../services/authorization-service.ts";
+import { ValidationException } from "../exceptions/validation.ts";
 import { Request, Response } from "express";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
-import { CreateTaskSchema, TaskIdSchema, UpdateTaskSchema, UserIdSchema } from "../schemas/task-schema";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
+import { CreateTaskSchema, TaskIdSchema, UpdateTaskSchema, UserIdSchema } from "../schemas/task-schema.ts";
 import {
   CompleteTaskService,
   CreateTaskService,
@@ -12,9 +12,9 @@ import {
   FindTaskByIdService,
   FindTasksByUserService,
   UpdateTaskService,
-} from "../services/task-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../services/task-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class TaskController {
   GetPendingTasksByUser = ErrorHandler(async (req: Request, res: Response) => {

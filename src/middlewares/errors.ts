@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { normalizeError } from "../utils/normalize-error";
+import { normalizeError } from "../utils/normalize-error.ts";
 
 export function ErrorMiddleware(error: unknown, req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) return next(error);

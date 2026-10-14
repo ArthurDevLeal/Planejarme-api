@@ -1,22 +1,22 @@
-import { ValidationException } from "../exceptions/validation";
+import { ValidationException } from "../exceptions/validation.ts";
 import { Request, Response } from "express";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 import {
   CreateInboxItemSchema,
   InboxItemIdSchema,
   UpdateInboxItemSchema,
   UserIdSchema,
-} from "../schemas/inbox-item-schema";
+} from "../schemas/inbox-item-schema.ts";
 import {
   CreateInboxItemService,
   DeleteInboxItemService,
   FindInboxItemByIdService,
   FindInboxItemsByUserService,
   UpdateInboxItemService,
-} from "../services/inbox-item-service";
-import { sendSuccess } from "../utils/api-response";
-import { ErrorHandler } from "../utils/error-handler";
+} from "../services/inbox-item-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
+import { ErrorHandler } from "../utils/error-handler.ts";
 
 export class InboxItemController {
   GetInboxItemById = ErrorHandler(async (req: Request, res: Response) => {

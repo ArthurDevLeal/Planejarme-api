@@ -1,7 +1,7 @@
-import { prisma } from "../../lib/prisma";
-import { ForbiddenException } from "../exceptions/forbidden";
-import { NotFoundException } from "../exceptions/not-found";
-import { ErrorCode } from "../exceptions/root";
+import { prisma } from "../../lib/prisma.ts";
+import { ForbiddenException } from "../exceptions/forbidden.ts";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 
 type Resource = "user" | "discipline" | "task" | "schedule" | "evaluation" | "semester";
 function assertOwner(ownerId: string, userId: string) {

@@ -21,13 +21,15 @@ model User {
   course       String?
   institution  String?
 
-  passingScore  Float @default(7.0)
-  maxAbsencePct Float @default(25.0)
+  passingScore         Float   @default(7.0)
+  maxAbsencePct        Float   @default(25.0)
+  defaultGradingSystem String? @default("ARITHMETIC")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   resetTokens   PasswordResetToken[]
+  semesters     Semester[]
   disciplines   Discipline[]
   tasks         Task[]
   inboxItems    InboxItem[]
@@ -43,6 +45,25 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 }
 
+model Semester {
+  id        String    @id @default(uuid())
+  name      String
+  startDate DateTime?
+  endDate   DateTime?
+  isCurrent Boolean   @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  disciplines Discipline[]
+  tasks       Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name])
+}
+
 model Discipline {
   id            String  @id @default(uuid())
   name          String
@@ -54,6 +75,9 @@ model Discipline {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  semesterId String?
+  semester   Semester? @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
   schedules Schedule[]
   materials Material[]
@@ -67,10 +91,22 @@ model Discipline {
 model Schedule {
   id           String     @id @default(uuid())
   dayOfWeek    Int
-  startTime    String
-  endTime      String
+  startTime    String?
+  endTime      String?
+  attendanceSince DateTime @default(dbgenerated("((CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date)")) @db.Date
   disciplineId String
   discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  attendances ScheduleAttendance[]
+}
+
+model ScheduleAttendance {
+  id         String   @id @default(uuid())
+  scheduleId String
+  date       DateTime @db.Date
+  attended   Boolean
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, date])
 }
 
 model Material {
@@ -79,6 +115,9 @@ model Material {
   type         String
   url          String
   fileSizeMb   Float?
+  mimeType     String?
+  storagePath  String?
+  userId       String?
   disciplineId String?
   discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
   createdAt    DateTime    @default(now())
@@ -111,6 +150,9 @@ model Task {
 
   disciplineId String?
   discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
+
+  semesterId String?
+  semester   Semester? @relation(fields: [semesterId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

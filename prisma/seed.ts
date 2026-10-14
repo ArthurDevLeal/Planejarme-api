@@ -39,6 +39,17 @@ async function main() {
   await prisma.inboxItem.deleteMany({ where: { userId: demoUser.id } });
   await prisma.task.deleteMany({ where: { userId: demoUser.id } });
   await prisma.discipline.deleteMany({ where: { userId: demoUser.id } });
+  await prisma.semester.deleteMany({ where: { userId: demoUser.id } });
+
+  const currentSemester = await prisma.semester.create({
+    data: {
+      name: "2026.2",
+      isCurrent: true,
+      startDate: new Date("2026-08-01T00:00:00.000Z"),
+      endDate: new Date("2026-12-20T23:59:59.000Z"),
+      userId: demoUser.id,
+    },
+  });
 
   const algorithms = await prisma.discipline.create({
     data: {
@@ -49,6 +60,7 @@ async function main() {
       absences: 2,
       gradingSystem: "ARITHMETIC",
       userId: demoUser.id,
+      semesterId: currentSemester.id,
       schedules: {
         create: [
           { dayOfWeek: 2, startTime: "19:00", endTime: "20:40" },
@@ -89,6 +101,7 @@ async function main() {
       absences: 4,
       gradingSystem: "ARITHMETIC",
       userId: demoUser.id,
+      semesterId: currentSemester.id,
       schedules: {
         create: [{ dayOfWeek: 3, startTime: "19:00", endTime: "20:40" }],
       },
@@ -120,6 +133,7 @@ async function main() {
         status: "PENDING",
         userId: demoUser.id,
         disciplineId: algorithms.id,
+        semesterId: currentSemester.id,
       },
       {
         title: "Entregar modelo entidade-relacionamento",
@@ -128,6 +142,7 @@ async function main() {
         status: "IN_PROGRESS",
         userId: demoUser.id,
         disciplineId: databases.id,
+        semesterId: currentSemester.id,
       },
       {
         title: "Ler capítulo de complexidade",
@@ -137,6 +152,7 @@ async function main() {
         completedAt: new Date("2026-09-04T18:00:00.000Z"),
         userId: demoUser.id,
         disciplineId: algorithms.id,
+        semesterId: currentSemester.id,
       },
     ],
   });

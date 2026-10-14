@@ -1,3 +1,4 @@
+import { AuthorizeRequestService } from "../services/authorization-service";
 import { ValidationException } from "../exceptions/validation";
 import { Request, Response } from "express";
 import { NotFoundException } from "../exceptions/not-found";
@@ -23,13 +24,21 @@ function withoutPasswordHash<T extends { passwordHash: string }>({ passwordHash:
 }
 
 export class UserController {
+  GetCurrentUserDashboard = ErrorHandler(async (req: Request, res: Response) => {
+    const semesterId = typeof req.query.semesterId === "string" ? req.query.semesterId : undefined;
+    const dashboard = await GetUserDashboardService(req.userId, semesterId);
+    if (!dashboard) throw new NotFoundException("Usuário não encontrado.", ErrorCode.USER_NOT_FOUND);
+    return sendSuccess(res, dashboard);
+  });
   GetUserDashboard = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "user", req.params, req.body);
     const result = UserIdSchema.safeParse(req.params);
     if (!result.success) {
       throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
     }
 
-    const dashboard = await GetUserDashboardService(result.data.userId);
+    const semesterId = typeof req.query.semesterId === "string" ? req.query.semesterId : undefined;
+    const dashboard = await GetUserDashboardService(result.data.userId, semesterId);
     if (!dashboard) {
       throw new NotFoundException("Usuário não encontrado. O registro pode ter sido removido. Atualize a página e tente novamente.", ErrorCode.USER_NOT_FOUND);
     }
@@ -38,6 +47,7 @@ export class UserController {
   });
 
   GetUserById = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "user", req.params, req.body);
     const result = FindUserByIdSchema.safeParse(req.params);
     if (!result.success) {
       throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
@@ -72,6 +82,7 @@ export class UserController {
   });
 
   UpdateUser = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "user", req.params, req.body);
     const params = FindUserByIdSchema.safeParse(req.params);
     const body = UpdateUserSchema.safeParse(req.body);
     if (!params.success || !body.success) {
@@ -83,6 +94,7 @@ export class UserController {
   });
 
   DeleteUser = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "user", req.params, req.body);
     const result = DeleteUserSchema.safeParse(req.params);
     if (!result.success) {
       throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);

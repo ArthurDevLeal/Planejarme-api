@@ -9,10 +9,13 @@ import { scheduleRouter } from "./schedule-router";
 import { taskRouter } from "./task-router";
 import { userRouter } from "./user-router";
 
+import { semesterRouter } from "./semester-router";
+
 const mainRouter = Router();
 
 mainRouter.use("/auth", authRouter);
 mainRouter.use("/users", userRouter);
+mainRouter.use("/semesters", semesterRouter);
 mainRouter.use("/disciplines", disciplineRouter);
 mainRouter.use("/evaluations", evaluationRouter);
 mainRouter.use("/schedules", scheduleRouter);

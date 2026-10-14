@@ -1,3 +1,4 @@
+import { AuthorizeRequestService } from "../services/authorization-service";
 import { ValidationException } from "../exceptions/validation";
 import { Request, Response } from "express";
 import { NotFoundException } from "../exceptions/not-found";
@@ -20,6 +21,7 @@ import { ErrorHandler } from "../utils/error-handler";
 
 export class DisciplineController {
   GetDisciplineById = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "discipline", req.params, req.body);
     const result = DisciplineIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de disciplina é inválido. Confira o registro selecionado.", result);
 
@@ -29,18 +31,21 @@ export class DisciplineController {
   });
 
   GetDisciplinesByUser = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "discipline", req.params, req.body);
     const result = UserIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
     return sendSuccess(res, await FindDisciplinesByUserService(result.data.userId));
   });
 
   CreateDiscipline = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "discipline", req.params, req.body);
     const result = CreateDisciplineSchema.safeParse(req.body);
     if (!result.success) throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", result);
     return sendSuccess(res, await CreateDisciplineService(result.data), "Discipline created", 201);
   });
 
   UpdateDiscipline = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "discipline", req.params, req.body);
     const params = DisciplineIdSchema.safeParse(req.params);
     const body = UpdateDisciplineSchema.safeParse(req.body);
     if (!params.success || !body.success)
@@ -49,6 +54,7 @@ export class DisciplineController {
   });
 
   DeleteDiscipline = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "discipline", req.params, req.body);
     const result = DisciplineIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de disciplina é inválido. Confira o registro selecionado.", result);
     await DeleteDisciplineService(result.data.id);

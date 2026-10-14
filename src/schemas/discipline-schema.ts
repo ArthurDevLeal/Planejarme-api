@@ -1,6 +1,6 @@
 import z from "./zod";
 
-const CreateDisciplineSchema = z.object({
+const BaseDisciplineSchema = z.object({
   name: z.string().min(1).max(150),
   professor: z.string().max(150).optional(),
   classroom: z.string().max(100).optional(),
@@ -8,9 +8,30 @@ const CreateDisciplineSchema = z.object({
   absences: z.coerce.number().int().nonnegative().optional(),
   gradingSystem: z.string().min(1).max(50).optional(),
   userId: z.string().min(1),
+  semesterId: z.string().min(1).optional(),
+  days: z.array(z.number().int().min(0).max(6)).min(1).optional(),
 });
 
-const UpdateDisciplineSchema = CreateDisciplineSchema.omit({ userId: true }).partial();
+const CreateDisciplineSchema = BaseDisciplineSchema.refine(
+  (data) => data.absences === undefined || data.absences <= data.workloadHours,
+  {
+    message: "O número de faltas não pode ultrapassar a carga horária total.",
+    path: ["absences"],
+  }
+);
+
+const UpdateDisciplineSchema = BaseDisciplineSchema.omit({ userId: true, days: true })
+  .partial()
+  .refine(
+    (data) =>
+      data.absences === undefined ||
+      data.workloadHours === undefined ||
+      data.absences <= data.workloadHours,
+    {
+      message: "O número de faltas não pode ultrapassar a carga horária total.",
+      path: ["absences"],
+    }
+  );
 const DisciplineIdSchema = z.object({ id: z.string().min(1) });
 const UserIdSchema = z.object({ userId: z.string().min(1) });
 

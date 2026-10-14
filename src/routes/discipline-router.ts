@@ -1,8 +1,10 @@
+import { AuthMiddleware } from "../middlewares/auth";
 import { Router } from "express";
 import { DisciplineController } from "../controllers/discipline-controller";
 
 const disciplineRouter = Router();
 const controller = new DisciplineController();
+disciplineRouter.use(AuthMiddleware);
 
 disciplineRouter.get("/user/:userId", controller.GetDisciplinesByUser);
 disciplineRouter.get("/:id", controller.GetDisciplineById);

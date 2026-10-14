@@ -13,22 +13,52 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
       ErrorCode.INVALID_DATA
     );
   }
-  const { days, startTime, endTime, ...discipline } = data;
+  const { days, startTime, endTime, schedules, ...discipline } = data;
   let semesterId = discipline.semesterId;
   if (!semesterId) {
     const current = await EnsureUserHasCurrentSemester(discipline.userId);
     semesterId = current.id;
   }
+
+  let schedulesToCreate: { dayOfWeek: number; startTime: string | null; endTime: string | null }[] | undefined = undefined;
+
+  if (schedules && schedules.length > 0) {
+    const scheduleMap = new Map<number, { startTime: string | null; endTime: string | null }>();
+    for (const s of schedules) {
+      scheduleMap.set(s.dayOfWeek, {
+        startTime: s.startTime ?? null,
+        endTime: s.endTime ?? null,
+      });
+    }
+    if (days) {
+      for (const d of days) {
+        if (!scheduleMap.has(d)) {
+          scheduleMap.set(d, {
+            startTime: startTime ?? null,
+            endTime: endTime ?? null,
+          });
+        }
+      }
+    }
+    schedulesToCreate = Array.from(scheduleMap.entries()).map(([dayOfWeek, times]) => ({
+      dayOfWeek,
+      startTime: times.startTime,
+      endTime: times.endTime,
+    }));
+  } else if (days && days.length > 0) {
+    schedulesToCreate = [...new Set(days)].map((dayOfWeek) => ({
+      dayOfWeek,
+      startTime: startTime ?? null,
+      endTime: endTime ?? null,
+    }));
+  }
+
   return prisma.discipline.create({
     data: {
       ...discipline,
       semesterId,
-      schedules: days ? {
-        create: [...new Set(days)].map((dayOfWeek) => ({
-          dayOfWeek,
-          startTime: startTime ?? null,
-          endTime: endTime ?? null,
-        })),
+      schedules: schedulesToCreate ? {
+        create: schedulesToCreate,
       } : undefined,
     },
     include: { schedules: true, materials: true, evaluations: true },

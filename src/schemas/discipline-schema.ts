@@ -1,5 +1,11 @@
 import z from "./zod.ts";
 
+const ScheduleInputSchema = z.object({
+  dayOfWeek: z.number().int().min(0).max(6),
+  startTime: z.string().max(20).optional().nullable(),
+  endTime: z.string().max(20).optional().nullable(),
+});
+
 const BaseDisciplineSchema = z.object({
   name: z.string().min(1).max(150),
   professor: z.string().max(150).optional(),
@@ -12,6 +18,7 @@ const BaseDisciplineSchema = z.object({
   days: z.array(z.number().int().min(0).max(6)).min(1).optional(),
   startTime: z.string().max(20).optional().nullable(),
   endTime: z.string().max(20).optional().nullable(),
+  schedules: z.array(ScheduleInputSchema).optional(),
 });
 
 const CreateDisciplineSchema = BaseDisciplineSchema.refine(

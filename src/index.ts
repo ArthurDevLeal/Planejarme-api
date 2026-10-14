@@ -1,15 +1,15 @@
 import cors from "cors";
 import express, { urlencoded } from "express";
-import { ErrorMiddleware } from "./middlewares/errors";
-import { mainRouter } from "./routes/main-router";
 import { NotFoundException } from "./exceptions/not-found";
 import { ErrorCode } from "./exceptions/root";
+import { ErrorMiddleware } from "./middlewares/errors";
+import { mainRouter } from "./routes/main-router";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 const corsMiddleware = cors({
-  origin: "*",
+  origin: "https://planejarme-web.vercel.app",
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 });
@@ -27,7 +27,12 @@ app.get("/", (req, res) => {
 });
 
 app.use((req, res, next) => {
-  next(new NotFoundException("A rota solicitada não existe. Confira o endereço e o método da solicitação.", ErrorCode.ROUTE_NOT_FOUND));
+  next(
+    new NotFoundException(
+      "A rota solicitada não existe. Confira o endereço e o método da solicitação.",
+      ErrorCode.ROUTE_NOT_FOUND,
+    ),
+  );
 });
 
 app.use(ErrorMiddleware);

@@ -36,6 +36,7 @@ const UpdateUserSchema = z.object({
   institution: z.string().optional(),
   passingScore: z.number().optional(),
   maxAbsencePct: z.number().optional(),
+  defaultGradingSystem: z.enum(["ARITHMETIC", "WEIGHTED"]).optional(),
 });
 
 type CreateUserSchemaType = z.infer<typeof CreateUserSchema>;

@@ -53,7 +53,8 @@ export class UserController {
       throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
     }
 
-    const user = await FindUserByIdService(result.data);
+    const targetId = result.data.id === "me" ? req.userId : result.data.id;
+    const user = await FindUserByIdService({ id: targetId });
     if (!user) {
       throw new NotFoundException("Usuário não encontrado. O registro pode ter sido removido. Atualize a página e tente novamente.", ErrorCode.USER_NOT_FOUND);
     }
@@ -89,7 +90,8 @@ export class UserController {
       throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", params, body);
     }
 
-    const user = await UpdateUserService(params.data.id, body.data);
+    const targetId = params.data.id === "me" ? req.userId : params.data.id;
+    const user = await UpdateUserService(targetId, body.data);
     return sendSuccess(res, withoutPasswordHash(user), "User updated");
   });
 

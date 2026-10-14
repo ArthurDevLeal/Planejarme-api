@@ -16,7 +16,8 @@ export async function AuthorizeRequestService(
     if (typeof value === "string") assertOwner(value, userId);
   }
   if (resource === "user") {
-    if (typeof params.id === "string") assertOwner(params.id, userId);
+    const targetId = params.id === "me" ? userId : params.id;
+    if (typeof targetId === "string") assertOwner(targetId, userId);
     return;
   }
   for (const semesterId of [params.semesterId, input.semesterId]) {

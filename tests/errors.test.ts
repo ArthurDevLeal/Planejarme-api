@@ -48,7 +48,7 @@ function prismaError(code: string, modelName?: string) {
   return { name: "PrismaClientKnownRequestError", code, meta: { modelName }, message: "private database details" };
 }
 
-for (const model of ["User", "Discipline", "Evaluation", "Task", "Material", "Schedule", "InboxItem", "Notification"]) {
+for (const model of ["User", "Discipline", "Evaluation", "Task", "Material", "Schedule", "InboxItem", "Notification", "Semester"]) {
   test(`P2025 para ${model} retorna um 404 específico`, () => {
     const error = normalizeError(prismaError("P2025", model));
     const resource = model.replace(/[a-z]([A-Z])/g, (match) => `${match[0]}_${match[1]}`).toUpperCase();
@@ -98,10 +98,10 @@ test("validação expõe campo e restrição em português, sem ecoar dados", ()
   assert.deepEqual(Object.keys(details[0]), ["field", "code", "message"]);
 });
 
-for (const endpoint of ["/auth/signin", "/users", "/disciplines", "/evaluations", "/tasks", "/materials", "/schedules", "/inbox-items", "/notifications"]) {
+for (const endpoint of ["/auth/signin", "/users", "/disciplines", "/evaluations", "/tasks", "/materials", "/schedules", "/inbox-items", "/notifications", "/semesters"]) {
   test(`POST ${endpoint}: rota real retorna detalhes de validação`, async () => {
     const response = await fetch(`${baseUrl}${endpoint}`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt.sign({ id: "test-user" }, testSecret, { expiresIn: "1m" })}` }, body: "{}",
     });
     assert.equal(response.status, 400);
     const body = await response.json();

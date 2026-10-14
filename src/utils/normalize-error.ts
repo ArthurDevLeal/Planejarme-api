@@ -10,6 +10,7 @@ const resources: Record<string, { code: ErrorCode; label: string }> = {
   Schedule: { code: ErrorCode.SCHEDULE_NOT_FOUND, label: "Horário" },
   InboxItem: { code: ErrorCode.INBOX_ITEM_NOT_FOUND, label: "Item da caixa de entrada" },
   Notification: { code: ErrorCode.NOTIFICATION_NOT_FOUND, label: "Notificação" },
+  Semester: { code: ErrorCode.SEMESTER_NOT_FOUND, label: "Semestre" },
 };
 
 export function normalizeError(error: unknown): HttpException {

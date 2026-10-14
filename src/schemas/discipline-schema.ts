@@ -15,13 +15,14 @@ const BaseDisciplineSchema = z.object({
   gradingSystem: z.string().min(1).max(50).optional(),
   userId: z.string().min(1),
   semesterId: z.string().min(1).optional(),
+});
+
+const CreateDisciplineSchema = BaseDisciplineSchema.extend({
   days: z.array(z.number().int().min(0).max(6)).min(1).optional(),
   startTime: z.string().max(20).optional().nullable(),
   endTime: z.string().max(20).optional().nullable(),
   schedules: z.array(ScheduleInputSchema).optional(),
-});
-
-const CreateDisciplineSchema = BaseDisciplineSchema.refine(
+}).refine(
   (data) => data.absences === undefined || data.absences <= data.workloadHours,
   {
     message: "O número de faltas não pode ultrapassar a carga horária total.",
@@ -29,7 +30,7 @@ const CreateDisciplineSchema = BaseDisciplineSchema.refine(
   }
 );
 
-const UpdateDisciplineSchema = BaseDisciplineSchema.omit({ userId: true, days: true })
+const UpdateDisciplineSchema = BaseDisciplineSchema.omit({ userId: true })
   .partial()
   .refine(
     (data) =>

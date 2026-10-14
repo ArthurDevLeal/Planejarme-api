@@ -10,7 +10,7 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
   if (data.absences !== undefined && data.absences > data.workloadHours) {
     throw new BadRequestsException(
       "O número de faltas não pode ultrapassar a carga horária total.",
-      ErrorCode.INVALID_DATA
+      ErrorCode.INVALID_DATA,
     );
   }
   const { days, startTime, endTime, schedules, ...discipline } = data;
@@ -20,7 +20,9 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
     semesterId = current.id;
   }
 
-  let schedulesToCreate: { dayOfWeek: number; startTime: string | null; endTime: string | null }[] | undefined = undefined;
+  let schedulesToCreate:
+    | { dayOfWeek: number; startTime: string | null; endTime: string | null }[]
+    | undefined = undefined;
 
   if (schedules && schedules.length > 0) {
     const scheduleMap = new Map<number, { startTime: string | null; endTime: string | null }>();
@@ -57,9 +59,11 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
     data: {
       ...discipline,
       semesterId,
-      schedules: schedulesToCreate ? {
-        create: schedulesToCreate,
-      } : undefined,
+      schedules: schedulesToCreate
+        ? {
+            create: schedulesToCreate,
+          }
+        : undefined,
     },
     include: { schedules: true, materials: true, evaluations: true },
   });
@@ -94,20 +98,17 @@ export async function UpdateDisciplineService(id: string, data: UpdateDiscipline
       const today = brasiliaDate();
       const scheduleAbsencesTotal = existing.schedules.reduce(
         (total, schedule) => total + scheduleAbsences(schedule, today),
-        0
+        0,
       );
       const workload = data.workloadHours ?? existing.workloadHours;
       const absences = data.absences ?? existing.absences;
       if (absences < 0) {
-        throw new BadRequestsException(
-          "O número de faltas não pode ser negativo.",
-          ErrorCode.INVALID_DATA
-        );
+        throw new BadRequestsException("O número de faltas não pode ser negativo.", ErrorCode.INVALID_DATA);
       }
       if (absences + scheduleAbsencesTotal > workload) {
         throw new BadRequestsException(
           "O número de faltas não pode ultrapassar a carga horária total.",
-          ErrorCode.INVALID_DATA
+          ErrorCode.INVALID_DATA,
         );
       }
     }

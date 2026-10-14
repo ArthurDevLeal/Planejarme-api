@@ -1,8 +1,14 @@
+import { AttendanceController } from "../controllers/attendance-controller";
+import { AuthMiddleware } from "../middlewares/auth";
 import { Router } from "express";
 import { ScheduleController } from "../controllers/schedule-controller";
 
 const scheduleRouter = Router();
 const controller = new ScheduleController();
+scheduleRouter.use(AuthMiddleware);
+scheduleRouter.patch("/:id/attendance", new AttendanceController().SetAttendance);
+scheduleRouter.patch("/:id/attendance/:date", new AttendanceController().SetAttendance);
+scheduleRouter.put("/:id/series", controller.UpdateScheduleSeries);
 
 scheduleRouter.get("/user/:userId", controller.GetSchedulesByUser);
 scheduleRouter.get("/discipline/:disciplineId", controller.GetSchedulesByDiscipline);

@@ -7,6 +7,7 @@ const CreateTaskSchema = z.object({
   status: z.string().min(1).max(30).optional(),
   userId: z.string().min(1),
   disciplineId: z.string().min(1).optional(),
+  semesterId: z.string().min(1).optional(),
 });
 
 const UpdateTaskSchema = CreateTaskSchema.omit({ userId: true }).partial();

@@ -1,3 +1,4 @@
+import { AuthorizeRequestService } from "../services/authorization-service";
 import { ValidationException } from "../exceptions/validation";
 import { Request, Response } from "express";
 import { NotFoundException } from "../exceptions/not-found";
@@ -17,12 +18,14 @@ import { ErrorHandler } from "../utils/error-handler";
 
 export class TaskController {
   GetPendingTasksByUser = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "task", req.params, req.body);
     const result = UserIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
     return sendSuccess(res, await FindPendingTasksByUserService(result.data.userId));
   });
 
   GetTaskById = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "task", req.params, req.body);
     const result = TaskIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de tarefa é inválido. Confira o registro selecionado.", result);
     const task = await FindTaskByIdService(result.data.id);
@@ -31,18 +34,21 @@ export class TaskController {
   });
 
   GetTasksByUser = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "task", req.params, req.body);
     const result = UserIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
     return sendSuccess(res, await FindTasksByUserService(result.data.userId));
   });
 
   CreateTask = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "task", req.params, req.body);
     const result = CreateTaskSchema.safeParse(req.body);
     if (!result.success) throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", result);
     return sendSuccess(res, await CreateTaskService(result.data), "Task created", 201);
   });
 
   UpdateTask = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "task", req.params, req.body);
     const params = TaskIdSchema.safeParse(req.params);
     const body = UpdateTaskSchema.safeParse(req.body);
     if (!params.success || !body.success)
@@ -51,12 +57,14 @@ export class TaskController {
   });
 
   CompleteTask = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "task", req.params, req.body);
     const result = TaskIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de tarefa é inválido. Confira o registro selecionado.", result);
     return sendSuccess(res, await CompleteTaskService(result.data.id), "Task completed");
   });
 
   DeleteTask = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "task", req.params, req.body);
     const result = TaskIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de tarefa é inválido. Confira o registro selecionado.", result);
     await DeleteTaskService(result.data.id);

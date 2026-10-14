@@ -1,3 +1,4 @@
+import { AuthorizeRequestService } from "../services/authorization-service";
 import { ValidationException } from "../exceptions/validation";
 import { Request, Response } from "express";
 import { NotFoundException } from "../exceptions/not-found";
@@ -21,12 +22,14 @@ import { ErrorHandler } from "../utils/error-handler";
 
 export class EvaluationController {
   GetEvaluationSummary = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "evaluation", req.params, req.body);
     const result = DisciplineIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de disciplina é inválido. Confira o registro selecionado.", result);
     return sendSuccess(res, await FindEvaluationSummaryService(result.data.disciplineId));
   });
 
   GetEvaluationById = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "evaluation", req.params, req.body);
     const result = EvaluationIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de avaliação é inválido. Confira o registro selecionado.", result);
     const evaluation = await FindEvaluationByIdService(result.data.id);
@@ -35,18 +38,21 @@ export class EvaluationController {
   });
 
   GetEvaluationsByDiscipline = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "evaluation", req.params, req.body);
     const result = DisciplineIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de disciplina é inválido. Confira o registro selecionado.", result);
     return sendSuccess(res, await FindEvaluationsByDisciplineService(result.data.disciplineId));
   });
 
   CreateEvaluation = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "evaluation", req.params, req.body);
     const result = CreateEvaluationSchema.safeParse(req.body);
     if (!result.success) throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", result);
     return sendSuccess(res, await CreateEvaluationService(result.data), "Evaluation created", 201);
   });
 
   UpdateEvaluation = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "evaluation", req.params, req.body);
     const params = EvaluationIdSchema.safeParse(req.params);
     const body = UpdateEvaluationSchema.safeParse(req.body);
     if (!params.success || !body.success)
@@ -55,6 +61,7 @@ export class EvaluationController {
   });
 
   DeleteEvaluation = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "evaluation", req.params, req.body);
     const result = EvaluationIdSchema.safeParse(req.params);
     if (!result.success) throw new ValidationException("O identificador de avaliação é inválido. Confira o registro selecionado.", result);
     await DeleteEvaluationService(result.data.id);

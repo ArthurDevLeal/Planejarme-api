@@ -28,6 +28,15 @@ export function UpdateScheduleService(id: string, data: UpdateScheduleSchemaType
   return prisma.schedule.update({ where: { id }, data });
 }
 
+export async function UpdateScheduleSeriesService(userId: string, id: string, data: UpdateScheduleSchemaType) {
+  const schedule = await prisma.schedule.findFirst({ where: { id, discipline: { userId } }, select: { disciplineId: true } });
+  if (!schedule) return null;
+  return prisma.$transaction(async (transaction) => {
+    await transaction.schedule.updateMany({ where: { disciplineId: schedule.disciplineId }, data });
+    return transaction.schedule.findMany({ where: { disciplineId: schedule.disciplineId }, orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] });
+  });
+}
+
 export function DeleteScheduleService(id: string) {
   return prisma.schedule.delete({ where: { id } });
 }

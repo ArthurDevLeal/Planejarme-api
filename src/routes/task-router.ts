@@ -1,8 +1,10 @@
+import { AuthMiddleware } from "../middlewares/auth";
 import { Router } from "express";
 import { TaskController } from "../controllers/task-controller";
 
 const taskRouter = Router();
 const controller = new TaskController();
+taskRouter.use(AuthMiddleware);
 
 taskRouter.get("/user/:userId/pending", controller.GetPendingTasksByUser);
 taskRouter.get("/user/:userId", controller.GetTasksByUser);

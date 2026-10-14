@@ -1,8 +1,10 @@
+import { AuthMiddleware } from "../middlewares/auth";
 import { Router } from "express";
 import { EvaluationController } from "../controllers/evaluation-controller";
 
 const evaluationRouter = Router();
 const controller = new EvaluationController();
+evaluationRouter.use(AuthMiddleware);
 
 evaluationRouter.get("/discipline/:disciplineId/summary", controller.GetEvaluationSummary);
 evaluationRouter.get("/discipline/:disciplineId", controller.GetEvaluationsByDiscipline);

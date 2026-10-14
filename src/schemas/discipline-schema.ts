@@ -10,6 +10,8 @@ const BaseDisciplineSchema = z.object({
   userId: z.string().min(1),
   semesterId: z.string().min(1).optional(),
   days: z.array(z.number().int().min(0).max(6)).min(1).optional(),
+  startTime: z.string().max(20).optional().nullable(),
+  endTime: z.string().max(20).optional().nullable(),
 });
 
 const CreateDisciplineSchema = BaseDisciplineSchema.refine(

@@ -13,7 +13,7 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
       ErrorCode.INVALID_DATA
     );
   }
-  const { days, ...discipline } = data;
+  const { days, startTime, endTime, ...discipline } = data;
   let semesterId = discipline.semesterId;
   if (!semesterId) {
     const current = await EnsureUserHasCurrentSemester(discipline.userId);
@@ -24,7 +24,11 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
       ...discipline,
       semesterId,
       schedules: days ? {
-        create: [...new Set(days)].map((dayOfWeek) => ({ dayOfWeek, startTime: null, endTime: null })),
+        create: [...new Set(days)].map((dayOfWeek) => ({
+          dayOfWeek,
+          startTime: startTime ?? null,
+          endTime: endTime ?? null,
+        })),
       } : undefined,
     },
     include: { schedules: true, materials: true, evaluations: true },

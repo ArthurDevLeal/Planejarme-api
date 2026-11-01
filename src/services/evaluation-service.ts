@@ -16,11 +16,14 @@ export function FindEvaluationsByDisciplineService(disciplineId: string) {
   });
 }
 
+// RN06: em média ponderada os pesos de todas as avaliações devem somar 10.
+const TARGET_WEIGHT = 10;
+
 export async function FindEvaluationSummaryService(disciplineId: string) {
-  const evaluations = await prisma.evaluation.findMany({
-    where: { disciplineId },
-    orderBy: { date: "asc" },
-  });
+  const [evaluations, discipline] = await Promise.all([
+    prisma.evaluation.findMany({ where: { disciplineId }, orderBy: { date: "asc" } }),
+    prisma.discipline.findUnique({ where: { id: disciplineId }, select: { gradingSystem: true } }),
+  ]);
   const gradedEvaluations = evaluations.filter((evaluation) => evaluation.score !== null);
   const totalWeight = gradedEvaluations.reduce((total, evaluation) => total + evaluation.weight, 0);
   const weightedScore = totalWeight
@@ -28,7 +31,17 @@ export async function FindEvaluationSummaryService(disciplineId: string) {
       totalWeight
     : null;
 
-  return { evaluations, gradedCount: gradedEvaluations.length, totalWeight, weightedScore };
+  const plannedWeight = evaluations.reduce((total, evaluation) => total + evaluation.weight, 0);
+  const weightStatus =
+    discipline?.gradingSystem !== "WEIGHTED"
+      ? null
+      : Math.abs(plannedWeight - TARGET_WEIGHT) < 1e-6
+        ? "COMPLETE"
+        : plannedWeight < TARGET_WEIGHT
+          ? "INCOMPLETE"
+          : "EXCEEDED";
+
+  return { evaluations, gradedCount: gradedEvaluations.length, totalWeight, weightedScore, plannedWeight, weightStatus };
 }
 
 export function UpdateEvaluationService(id: string, data: UpdateEvaluationSchemaType) {

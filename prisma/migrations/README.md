@@ -23,6 +23,7 @@ resetado e passou a ter só o baseline, depois recebeu o seed.
 | --- | --- |
 | `20261015000000_semester_date_backfill` | Preenche `startDate`/`endDate` nulos antes do `NOT NULL`. |
 | `20261015125502_semester_required_dates` | Torna `Semester.startDate` e `Semester.endDate` obrigatórios. |
+| `20261101120000_user_rounding_mode` | Adiciona `User.roundingMode` (`NEAREST` por padrão) para a RN09. Aditiva. |
 
 ## Backup do banco de dev
 

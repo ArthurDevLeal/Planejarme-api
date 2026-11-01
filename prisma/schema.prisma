@@ -26,6 +26,8 @@ model User {
   passingScore         Float   @default(7.0)
   maxAbsencePct        Float   @default(25.0)
   defaultGradingSystem String? @default("ARITHMETIC")
+  // RN09: arredondamento das notas exibidas (NEAREST, UP ou DOWN; sempre 2 casas)
+  roundingMode         String  @default("NEAREST")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

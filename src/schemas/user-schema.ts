@@ -37,6 +37,7 @@ const UpdateUserSchema = z.object({
   passingScore: z.number().optional(),
   maxAbsencePct: z.number().optional(),
   defaultGradingSystem: z.enum(["ARITHMETIC", "WEIGHTED"]).optional(),
+  roundingMode: z.enum(["NEAREST", "UP", "DOWN"]).optional(),
 });
 
 const ChangePasswordSchema = z.object({

@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma.ts";
 import { CreateTaskSchemaType, UpdateTaskSchemaType } from "../schemas/task-schema.ts";
 
+import { storedTaskStatus, withTaskStatus } from "../utils/task-status.ts";
 import { EnsureUserHasCurrentSemester } from "./semester-service.ts";
 
 export async function CreateTaskService(data: CreateTaskSchemaType) {
@@ -16,42 +17,48 @@ export async function CreateTaskService(data: CreateTaskSchemaType) {
     const current = await EnsureUserHasCurrentSemester(data.userId);
     semesterId = current.id;
   }
-  return prisma.task.create({
+  return withTaskStatus(await prisma.task.create({
     data: {
       ...data,
+      ...(data.status !== undefined ? { status: storedTaskStatus(data.status) } : {}),
       semesterId,
     },
-  });
+  }));
 }
 
-export function FindTaskByIdService(id: string) {
-  return prisma.task.findUnique({
+export async function FindTaskByIdService(id: string) {
+  const task = await prisma.task.findUnique({
     where: { id },
     include: { discipline: { select: { id: true, name: true } } },
   });
+  return task && withTaskStatus(task);
 }
 
-export function FindTasksByUserService(userId: string, semesterId?: string) {
-  return prisma.task.findMany({
+export async function FindTasksByUserService(userId: string, semesterId?: string) {
+  const tasks = await prisma.task.findMany({
     where: { userId, ...(semesterId ? { semesterId } : {}) },
     include: { discipline: { select: { id: true, name: true } } },
     orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
   });
+  return tasks.map((task) => withTaskStatus(task));
 }
 
-export function FindPendingTasksByUserService(userId: string, semesterId?: string) {
-  return prisma.task.findMany({
+export async function FindPendingTasksByUserService(userId: string, semesterId?: string) {
+  const tasks = await prisma.task.findMany({
     where: { userId, status: { not: "COMPLETED" }, ...(semesterId ? { semesterId } : {}) },
     include: { discipline: { select: { id: true, name: true } } },
     orderBy: { dueDate: "asc" },
   });
+  return tasks.map((task) => withTaskStatus(task));
 }
 
-export function UpdateTaskService(id: string, data: UpdateTaskSchemaType) {
-  return prisma.task.update({ where: { id }, data: {
+export async function UpdateTaskService(id: string, data: UpdateTaskSchemaType) {
+  return withTaskStatus(await prisma.task.update({ where: { id }, data: {
     ...data,
-    ...(data.status !== undefined ? { completedAt: data.status === "COMPLETED" ? new Date() : null } : {}),
-  } });
+    ...(data.status !== undefined
+      ? { status: storedTaskStatus(data.status), completedAt: data.status === "COMPLETED" ? new Date() : null }
+      : {}),
+  } }));
 }
 
 export function CompleteTaskService(id: string) {

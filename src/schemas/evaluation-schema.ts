@@ -2,7 +2,7 @@ import z from "./zod.ts";
 
 const CreateEvaluationSchema = z.object({
   title: z.string().min(1).max(150),
-  weight: z.coerce.number().positive().optional(),
+  weight: z.coerce.number().positive().max(10).optional(),
   score: z.coerce.number().min(0).max(10).optional(),
   date: z.coerce.date(),
   disciplineId: z.string().min(1),

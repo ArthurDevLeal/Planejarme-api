@@ -1,6 +1,7 @@
 import { brasiliaDate, courseWindow, scheduleAbsences } from "../../utils/academic-date.ts";
 import { prisma } from "../../../lib/prisma.ts";
 import { EnsureUserHasCurrentSemester } from "../semester-service.ts";
+import { withTaskStatus } from "../../utils/task-status.ts";
 
 export async function GetUserDashboardService(
   userId: string,
@@ -17,6 +18,7 @@ export async function GetUserDashboardService(
       institution: true,
       passingScore: true,
       maxAbsencePct: true,
+      roundingMode: true,
     },
   });
 
@@ -124,6 +126,7 @@ export async function GetUserDashboardService(
       institution: user.institution,
       passingScore: user.passingScore,
       maxAbsencePct: user.maxAbsencePct,
+      roundingMode: user.roundingMode,
     },
     today,
     currentSemesterId: activeSemester?.id ?? null,
@@ -136,7 +139,7 @@ export async function GetUserDashboardService(
       endDate: s.endDate ? s.endDate.toISOString().slice(0, 10) : null,
     })),
     disciplines,
-    tasks: tasksData,
+    tasks: tasksData.map((task) => withTaskStatus(task)),
     inboxItems,
     notifications,
     summary: {

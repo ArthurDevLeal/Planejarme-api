@@ -8,6 +8,8 @@ import { ErrorMiddleware } from "../src/middlewares/errors.ts";
 
 let server: Server;
 let baseUrl = "";
+// Usam o banco (usuário fixo do banco de dev) e o Supabase Storage: só rodam com RUN_DB_TESTS=1.
+const dbTest = { skip: process.env.RUN_DB_TESTS !== "1" };
 const TEST_USER_ID = "27800be8-7b37-4287-8a0a-2e6587fa220f";
 const authHeader = () => ({
   Authorization: `Bearer ${jwt.sign({ id: TEST_USER_ID }, process.env.JWT_SECRET || "awdpkajdajd0ahd08uajhdo8ahd0a8hdadnadha08ushd")}`,
@@ -44,7 +46,7 @@ test("POST /materials/upload sem arquivo retorna 400 padronizado", async () => {
   assert.match(body.message, /arquivo/i);
 });
 
-test("POST /materials ignora storagePath e userId vindos do corpo", async () => {
+test("POST /materials ignora storagePath e userId vindos do corpo", dbTest, async () => {
   const testPayload = {
     title: "Documento de Teste Automatizado.pdf",
     type: "PDF",
@@ -95,7 +97,7 @@ test("POST /materials ignora storagePath e userId vindos do corpo", async () => 
   assert.equal(await prisma.material.findUnique({ where: { id: materialId } }), null);
 });
 
-test("GET /materials/:id/download-url com url pública retorna link de download", async () => {
+test("GET /materials/:id/download-url com url pública retorna link de download", dbTest, async () => {
   const material = await prisma.material.create({
     data: {
       title: "Link Externo de Slides",
@@ -116,7 +118,7 @@ test("GET /materials/:id/download-url com url pública retorna link de download"
   }
 });
 
-test("POST /materials com Bearer token associa material ao req.userId autenticado", async () => {
+test("POST /materials com Bearer token associa material ao req.userId autenticado", dbTest, async () => {
   const testUserId = "27800be8-7b37-4287-8a0a-2e6587fa220f";
   const token = jwt.sign({ id: testUserId }, process.env.JWT_SECRET || "awdpkajdajd0ahd08uajhdo8ahd0a8hdadnadha08ushd");
 
@@ -166,7 +168,7 @@ test("POST /materials com Bearer token associa material ao req.userId autenticad
   await prisma.material.delete({ where: { id: materialId } }).catch(() => {});
 });
 
-test("POST /materials/upload com arquivo multipart real, acentos e espaços", async () => {
+test("POST /materials/upload com arquivo multipart real, acentos e espaços", dbTest, async () => {
   const testUserId = "27800be8-7b37-4287-8a0a-2e6587fa220f";
   const token = jwt.sign({ id: testUserId }, process.env.JWT_SECRET || "awdpkajdajd0ahd08uajhdo8ahd0a8hdadnadha08ushd");
 

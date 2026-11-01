@@ -1,0 +1,46 @@
+# Ambiente de desenvolvimento (RNF12): Postgres local + API com recarga automática.
+# Uso: docker compose up    |    seed (uma vez): docker compose run --rm api npm run seed
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: planejarme
+      POSTGRES_PASSWORD: planejarme
+      POSTGRES_DB: planejarme
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planejarme -d planejarme"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    image: node:24-slim
+    working_dir: /app
+    # Instala dentro do container (bcrypt é nativo) e aplica as migrations antes de subir.
+    command: sh -c "npm ci && npx prisma migrate deploy --config prisma7.config.ts && npm run dev"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgres://planejarme:planejarme@db:5432/planejarme
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-troque-em-producao}
+      PORT: "3001"
+      WEB_URL: ${WEB_URL:-http://localhost:3000}
+      API_URL: ${API_URL:-http://localhost:3001}
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      # node_modules do container, separado do da máquina (binários nativos diferentes).
+      - node-modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  node-modules:

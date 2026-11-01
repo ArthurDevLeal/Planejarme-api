@@ -7,11 +7,13 @@ const CreateMaterialSchema = z.object({
   fileSizeMb: z.coerce.number().nonnegative().optional(),
   mimeType: z.string().optional(),
   disciplineId: z.string().min(1).optional().nullable(),
+  taskId: z.string().min(1).optional().nullable(),
 });
 
 const UpdateMaterialSchema = CreateMaterialSchema.partial();
 const MaterialIdSchema = z.object({ id: z.string().min(1) });
 const DisciplineIdSchema = z.object({ disciplineId: z.string().min(1) });
+const TaskIdSchema = z.object({ taskId: z.string().min(1) });
 const GetMaterialsQuerySchema = z.object({
   semesterId: z.string().min(1).optional(),
 });
@@ -31,6 +33,7 @@ export {
   GetMaterialsQuerySchemaType,
   MaterialIdSchema,
   MaterialIdSchemaType,
+  TaskIdSchema,
   UpdateMaterialSchema,
   UpdateMaterialSchemaType,
 };

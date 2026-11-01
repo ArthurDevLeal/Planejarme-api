@@ -41,7 +41,7 @@ export function FindSemestersByUserService(userId: string) {
       _count: {
         select: {
           disciplines: true,
-          tasks: true,
+          tasks: { where: { deletedAt: null } },
         },
       },
     },
@@ -58,7 +58,7 @@ export function FindSemesterByIdService(id: string) {
           schedules: true,
         },
       },
-      tasks: true,
+      tasks: { where: { deletedAt: null } },
     },
   });
 }

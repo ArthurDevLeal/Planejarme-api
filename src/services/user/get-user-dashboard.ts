@@ -47,7 +47,7 @@ export async function GetUserDashboardService(
         include: {
           semester: true,
           schedules: { include: { attendances: true } },
-          materials: true,
+          materials: { where: { deletedAt: null } },
           evaluations: true,
         },
         orderBy: { name: "asc" },
@@ -55,6 +55,7 @@ export async function GetUserDashboardService(
       prisma.task.findMany({
         where: {
           userId,
+          deletedAt: null,
           ...(activeSemester
             ? {
                 OR: [

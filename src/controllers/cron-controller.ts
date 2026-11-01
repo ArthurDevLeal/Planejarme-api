@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { ErrorCode } from "../exceptions/root.ts";
 import { UnauthorizedException } from "../exceptions/unauthorized.ts";
 import { GenerateDueNotificationsService } from "../services/notification-generator-service.ts";
+import { PurgeExpiredTrashService } from "../services/trash-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
@@ -21,6 +22,7 @@ export class CronController {
       throw new UnauthorizedException("Acesso restrito ao agendador.", ErrorCode.UNAUTHORIZED);
     }
     const notifications = await GenerateDueNotificationsService();
-    return sendSuccess(res, { notificationsCreated: notifications.created }, "Daily jobs finished");
+    const purged = await PurgeExpiredTrashService();
+    return sendSuccess(res, { notificationsCreated: notifications.created, trashPurged: purged }, "Daily jobs finished");
   });
 }

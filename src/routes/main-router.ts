@@ -11,6 +11,7 @@ import { userRouter } from "./user-router.ts";
 
 import { semesterRouter } from "./semester-router.ts";
 import { cronRouter } from "./cron-router.ts";
+import { trashRouter } from "./trash-router.ts";
 
 const mainRouter = Router();
 
@@ -24,6 +25,7 @@ mainRouter.use("/materials", materialRouter);
 mainRouter.use("/tasks", taskRouter);
 mainRouter.use("/inbox-items", inboxItemRouter);
 mainRouter.use("/notifications", notificationRouter);
+mainRouter.use("/trash", trashRouter);
 mainRouter.use("/cron", cronRouter);
 
 export { mainRouter };

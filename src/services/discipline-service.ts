@@ -69,7 +69,7 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
           }
         : undefined,
     },
-    include: { schedules: true, materials: true, evaluations: true },
+    include: { schedules: true, materials: { where: { deletedAt: null } }, evaluations: true },
   });
 }
 
@@ -79,7 +79,7 @@ export function FindDisciplineByIdService(id: string) {
     include: {
       semester: true,
       schedules: { include: { attendances: true } },
-      materials: true,
+      materials: { where: { deletedAt: null } },
     },
   });
 }
@@ -90,7 +90,7 @@ export function FindDisciplinesByUserService(userId: string, semesterId?: string
     include: {
       semester: true,
       schedules: { include: { attendances: true } },
-      materials: true,
+      materials: { where: { deletedAt: null } },
     },
     orderBy: { name: "asc" },
   });

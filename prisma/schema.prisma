@@ -124,6 +124,9 @@ model Material {
   userId       String?
   disciplineId String?
   discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
+  taskId       String?
+  task         Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  deletedAt    DateTime?
   createdAt    DateTime    @default(now())
 }
 
@@ -157,6 +160,11 @@ model Task {
 
   semesterId String?
   semester   Semester? @relation(fields: [semesterId], references: [id], onDelete: SetNull)
+
+  // RN16: lixeira. Preenchido ao excluir; some das listas e é apagado de vez após 30 dias.
+  deletedAt DateTime?
+  // RF13: anexos (arquivos e links) da tarefa
+  materials Material[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

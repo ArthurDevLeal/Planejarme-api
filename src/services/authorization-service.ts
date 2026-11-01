@@ -32,6 +32,12 @@ export async function AuthorizeRequestService(
     if (!discipline) throw new NotFoundException("Disciplina não encontrada.", ErrorCode.DISCIPLINE_NOT_FOUND);
     assertOwner(discipline.userId, userId);
   }
+  for (const taskId of [params.taskId, input.taskId]) {
+    if (typeof taskId !== "string" || !taskId) continue;
+    const task = await prisma.task.findUnique({ where: { id: taskId }, select: { userId: true } });
+    if (!task) throw new NotFoundException("Tarefa não encontrada.", ErrorCode.TASK_NOT_FOUND);
+    assertOwner(task.userId, userId);
+  }
   if (typeof params.id !== "string") return;
   let owner: string | undefined;
   let code: ErrorCode;

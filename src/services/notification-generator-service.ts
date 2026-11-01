@@ -22,7 +22,7 @@ export async function GenerateDueNotificationsService(now = new Date()) {
 
   const [tasks, evaluations] = await Promise.all([
     prisma.task.findMany({
-      where: { status: { not: "COMPLETED" }, dueDate: range },
+      where: { status: { not: "COMPLETED" }, deletedAt: null, dueDate: range },
       select: { id: true, title: true, dueDate: true, userId: true, discipline: { select: { name: true } } },
     }),
     prisma.evaluation.findMany({

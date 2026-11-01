@@ -11,6 +11,7 @@ import {
   DisciplineIdSchema,
   GetMaterialsQuerySchema,
   MaterialIdSchema,
+  TaskIdSchema,
   UpdateMaterialSchema,
 } from "../schemas/material-schema.ts";
 import { UserIdSchema } from "../schemas/user-schema.ts";
@@ -19,6 +20,7 @@ import {
   DeleteMaterialService,
   FindMaterialByIdService,
   FindMaterialsByDisciplineService,
+  FindMaterialsByTaskService,
   FindMaterialsByUserService,
   UpdateMaterialService,
 } from "../services/material-service.ts";
@@ -135,6 +137,15 @@ export class MaterialController {
     return sendSuccess(res, await FindMaterialsByDisciplineService(result.data.disciplineId));
   });
 
+  GetMaterialsByTask = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "material", req.params, req.body);
+    const result = TaskIdSchema.safeParse(req.params);
+    if (!result.success) {
+      throw new ValidationException("O identificador de tarefa é inválido. Confira o registro selecionado.", result);
+    }
+    return sendSuccess(res, await FindMaterialsByTaskService(result.data.taskId));
+  });
+
   UploadMaterial = ErrorHandler(async (req: Request, res: Response) => {
     if (!req.file) {
       throw new BadRequestsException(
@@ -147,7 +158,8 @@ export class MaterialController {
     const disciplineId = typeof req.body.disciplineId === "string" && req.body.disciplineId.trim().length > 0
       ? req.body.disciplineId.trim()
       : null;
-    await AuthorizeRequestService(userId, "material", {}, { disciplineId });
+    const taskId = typeof req.body.taskId === "string" && req.body.taskId.trim().length > 0 ? req.body.taskId.trim() : null;
+    await AuthorizeRequestService(userId, "material", {}, { disciplineId, taskId });
     const originalName = decodeOriginalName(req.file.originalname);
     const safeName = sanitizeFilename(originalName);
     const extension = originalName.includes(".") ? originalName.split(".").pop()?.toUpperCase() ?? "FILE" : "FILE";
@@ -183,6 +195,7 @@ export class MaterialController {
       storagePath,
       userId,
       disciplineId,
+      taskId,
     });
 
     return sendSuccess(res, material, "Material enviado com sucesso", 201);
@@ -223,13 +236,7 @@ export class MaterialController {
         result
       );
     }
-    const material = await DeleteMaterialService(result.data.id);
-    if (material?.storagePath) {
-      await supabase.storage
-        .from(SUPABASE_STORAGE_BUCKET)
-        .remove([material.storagePath])
-        .catch(() => {});
-    }
-    return sendSuccess(res, null, "Material deleted");
+    await DeleteMaterialService(result.data.id);
+    return sendSuccess(res, null, "Material moved to trash");
   });
 }

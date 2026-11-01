@@ -27,8 +27,8 @@ export async function CreateTaskService(data: CreateTaskSchemaType) {
 }
 
 export async function FindTaskByIdService(id: string) {
-  const task = await prisma.task.findUnique({
-    where: { id },
+  const task = await prisma.task.findFirst({
+    where: { id, deletedAt: null },
     include: { discipline: { select: { id: true, name: true } } },
   });
   return task && withTaskStatus(task);
@@ -36,7 +36,7 @@ export async function FindTaskByIdService(id: string) {
 
 export async function FindTasksByUserService(userId: string, semesterId?: string) {
   const tasks = await prisma.task.findMany({
-    where: { userId, ...(semesterId ? { semesterId } : {}) },
+    where: { userId, deletedAt: null, ...(semesterId ? { semesterId } : {}) },
     include: { discipline: { select: { id: true, name: true } } },
     orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
   });
@@ -45,7 +45,7 @@ export async function FindTasksByUserService(userId: string, semesterId?: string
 
 export async function FindPendingTasksByUserService(userId: string, semesterId?: string) {
   const tasks = await prisma.task.findMany({
-    where: { userId, status: { not: "COMPLETED" }, ...(semesterId ? { semesterId } : {}) },
+    where: { userId, deletedAt: null, status: { not: "COMPLETED" }, ...(semesterId ? { semesterId } : {}) },
     include: { discipline: { select: { id: true, name: true } } },
     orderBy: { dueDate: "asc" },
   });
@@ -68,6 +68,7 @@ export function CompleteTaskService(id: string) {
   });
 }
 
+/** RN16: vai para a lixeira; a exclusão definitiva fica em trash-service. */
 export function DeleteTaskService(id: string) {
-  return prisma.task.delete({ where: { id } });
+  return prisma.task.update({ where: { id }, data: { deletedAt: new Date() } });
 }

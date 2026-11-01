@@ -11,12 +11,7 @@ const upload = multer({
 const materialRouter = Router();
 const controller = new MaterialController();
 
-materialRouter.use((req, res, next) => {
-  if (req.headers.authorization) {
-    return AuthMiddleware(req, res, next);
-  }
-  next();
-});
+materialRouter.use(AuthMiddleware);
 
 materialRouter.get("/user/:userId", controller.GetMaterialsByUser);
 materialRouter.get("/discipline/:disciplineId", controller.GetMaterialsByDiscipline);

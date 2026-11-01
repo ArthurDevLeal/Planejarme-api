@@ -3,9 +3,9 @@ import crypto from "node:crypto";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
-import { UnauthorizedException } from "../exceptions/unauthorized.ts";
 import { ValidationException } from "../exceptions/validation.ts";
 import { supabase, SUPABASE_STORAGE_BUCKET } from "../lib/supabase.ts";
+import { AuthorizeRequestService } from "../services/authorization-service.ts";
 import {
   CreateMaterialSchema,
   DisciplineIdSchema,
@@ -53,16 +53,8 @@ export class MaterialController {
         result
       );
     }
-    let targetUserId = result.data.userId;
-    if (targetUserId === "me") {
-      if (!req.userId) {
-        throw new UnauthorizedException(
-          "Você precisa entrar na sua conta para continuar.",
-          ErrorCode.UNAUTHORIZED
-        );
-      }
-      targetUserId = req.userId;
-    }
+    const targetUserId = result.data.userId === "me" ? req.userId : result.data.userId;
+    await AuthorizeRequestService(req.userId, "material", { userId: targetUserId }, undefined);
     const queryResult = GetMaterialsQuerySchema.safeParse(req.query);
     const semesterId = queryResult.success && queryResult.data.semesterId && queryResult.data.semesterId !== "undefined" && queryResult.data.semesterId !== "null"
       ? queryResult.data.semesterId
@@ -71,6 +63,7 @@ export class MaterialController {
   });
 
   GetMaterialById = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "material", req.params, req.body);
     const result = MaterialIdSchema.safeParse(req.params);
     if (!result.success) {
       throw new ValidationException(
@@ -89,6 +82,7 @@ export class MaterialController {
   });
 
   GetMaterialDownloadUrl = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "material", req.params, req.body);
     const result = MaterialIdSchema.safeParse(req.params);
     if (!result.success) {
       throw new ValidationException(
@@ -130,6 +124,7 @@ export class MaterialController {
   });
 
   GetMaterialsByDiscipline = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "material", req.params, req.body);
     const result = DisciplineIdSchema.safeParse(req.params);
     if (!result.success) {
       throw new ValidationException(
@@ -148,13 +143,11 @@ export class MaterialController {
       );
     }
 
-    const userId = req.userId || (typeof req.body.userId === "string" ? req.body.userId : undefined);
-    if (!userId) {
-      throw new UnauthorizedException(
-        "Você precisa entrar na sua conta para continuar.",
-        ErrorCode.UNAUTHORIZED
-      );
-    }
+    const userId = req.userId;
+    const disciplineId = typeof req.body.disciplineId === "string" && req.body.disciplineId.trim().length > 0
+      ? req.body.disciplineId.trim()
+      : null;
+    await AuthorizeRequestService(userId, "material", {}, { disciplineId });
     const originalName = decodeOriginalName(req.file.originalname);
     const safeName = sanitizeFilename(originalName);
     const extension = originalName.includes(".") ? originalName.split(".").pop()?.toUpperCase() ?? "FILE" : "FILE";
@@ -179,10 +172,6 @@ export class MaterialController {
       ? req.body.title.trim()
       : originalName;
 
-    const disciplineId = typeof req.body.disciplineId === "string" && req.body.disciplineId.trim().length > 0
-      ? req.body.disciplineId.trim()
-      : null;
-
     const fileSizeMb = Number((req.file.size / (1024 * 1024)).toFixed(2));
 
     const material = await CreateMaterialService({
@@ -200,6 +189,7 @@ export class MaterialController {
   });
 
   CreateMaterial = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "material", req.params, req.body);
     const result = CreateMaterialSchema.safeParse(req.body);
     if (!result.success) {
       throw new ValidationException(
@@ -207,17 +197,11 @@ export class MaterialController {
         result
       );
     }
-    const userId = req.userId || result.data.userId;
-    if (!userId) {
-      throw new UnauthorizedException(
-        "Você precisa entrar na sua conta para continuar.",
-        ErrorCode.UNAUTHORIZED
-      );
-    }
-    return sendSuccess(res, await CreateMaterialService({ ...result.data, userId }), "Material created", 201);
+    return sendSuccess(res, await CreateMaterialService({ ...result.data, userId: req.userId }), "Material created", 201);
   });
 
   UpdateMaterial = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "material", req.params, req.body);
     const params = MaterialIdSchema.safeParse(req.params);
     const body = UpdateMaterialSchema.safeParse(req.body);
     if (!params.success || !body.success) {
@@ -231,6 +215,7 @@ export class MaterialController {
   });
 
   DeleteMaterial = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "material", req.params, req.body);
     const result = MaterialIdSchema.safeParse(req.params);
     if (!result.success) {
       throw new ValidationException(

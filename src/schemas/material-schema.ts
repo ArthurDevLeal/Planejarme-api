@@ -6,9 +6,7 @@ const CreateMaterialSchema = z.object({
   url: z.string().optional().default(""),
   fileSizeMb: z.coerce.number().nonnegative().optional(),
   mimeType: z.string().optional(),
-  storagePath: z.string().optional(),
   disciplineId: z.string().min(1).optional().nullable(),
-  userId: z.string().min(1).optional(),
 });
 
 const UpdateMaterialSchema = CreateMaterialSchema.partial();

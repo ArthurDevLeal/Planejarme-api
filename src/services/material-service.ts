@@ -1,7 +1,8 @@
 import { prisma } from "../../lib/prisma.ts";
 import { CreateMaterialSchemaType, UpdateMaterialSchemaType } from "../schemas/material-schema.ts";
 
-export function CreateMaterialService(data: CreateMaterialSchemaType) {
+// storagePath e userId vêm só do servidor (upload e token), nunca do corpo da requisição.
+export function CreateMaterialService(data: CreateMaterialSchemaType & { userId: string; storagePath?: string }) {
   return prisma.material.create({
     data: {
       title: data.title,
@@ -84,8 +85,6 @@ export function UpdateMaterialService(id: string, data: UpdateMaterialSchemaType
       ...(data.url !== undefined ? { url: data.url } : {}),
       ...(data.fileSizeMb !== undefined ? { fileSizeMb: data.fileSizeMb } : {}),
       ...(data.mimeType !== undefined ? { mimeType: data.mimeType } : {}),
-      ...(data.storagePath !== undefined ? { storagePath: data.storagePath } : {}),
-      ...(data.userId !== undefined ? { userId: data.userId } : {}),
       ...(data.disciplineId !== undefined ? { disciplineId: data.disciplineId } : {}),
     },
     include: {

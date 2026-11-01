@@ -8,6 +8,10 @@ import { ErrorMiddleware } from "../src/middlewares/errors.ts";
 
 let server: Server;
 let baseUrl = "";
+const TEST_USER_ID = "27800be8-7b37-4287-8a0a-2e6587fa220f";
+const authHeader = () => ({
+  Authorization: `Bearer ${jwt.sign({ id: TEST_USER_ID }, process.env.JWT_SECRET || "awdpkajdajd0ahd08uajhdo8ahd0a8hdadnadha08ushd")}`,
+});
 
 before(async () => {
   const { mainRouter } = await import("../src/routes/main-router.ts");
@@ -31,7 +35,7 @@ after(async () => {
 test("POST /materials/upload sem arquivo retorna 400 padronizado", async () => {
   const response = await fetch(`${baseUrl}/materials/upload`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({ title: "Teste" }),
   });
   assert.equal(response.status, 400);
@@ -40,20 +44,19 @@ test("POST /materials/upload sem arquivo retorna 400 padronizado", async () => {
   assert.match(body.message, /arquivo/i);
 });
 
-test("POST /materials com storagePath cria material com sucesso", async () => {
+test("POST /materials ignora storagePath e userId vindos do corpo", async () => {
   const testPayload = {
     title: "Documento de Teste Automatizado.pdf",
     type: "PDF",
     url: "",
     fileSizeMb: 1.5,
     mimeType: "application/pdf",
-    storagePath: "test-user/doc-teste.pdf",
-    userId: "27800be8-7b37-4287-8a0a-2e6587fa220f",
+    storagePath: "outro-usuario/arquivo-alheio.pdf",
   };
 
   const response = await fetch(`${baseUrl}/materials`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify(testPayload),
   });
 
@@ -61,25 +64,27 @@ test("POST /materials com storagePath cria material com sucesso", async () => {
   const resBody = await response.json();
   assert.equal(resBody.success, true);
   assert.equal(resBody.data.title, testPayload.title);
-  assert.equal(resBody.data.storagePath, testPayload.storagePath);
+  // storagePath só é definido pelo upload; aceitar do corpo permitiria assinar URL de arquivo alheio.
+  assert.equal(resBody.data.storagePath, null);
+  assert.equal(resBody.data.userId, TEST_USER_ID);
   assert.equal(resBody.data.fileSizeMb, 1.5);
 
   const materialId = resBody.data.id;
 
   // GET /materials/:id
-  const getRes = await fetch(`${baseUrl}/materials/${materialId}`);
+  const getRes = await fetch(`${baseUrl}/materials/${materialId}`, { headers: authHeader() });
   assert.equal(getRes.status, 200);
   const getBody = await getRes.json();
   assert.equal(getBody.data.id, materialId);
 
   // GET /materials/user/:userId
-  const listRes = await fetch(`${baseUrl}/materials/user/27800be8-7b37-4287-8a0a-2e6587fa220f`);
+  const listRes = await fetch(`${baseUrl}/materials/user/${TEST_USER_ID}`, { headers: authHeader() });
   assert.equal(listRes.status, 200);
   const listBody = await listRes.json();
   assert.ok(listBody.data.some((m: { id: string }) => m.id === materialId));
 
   // DELETE /materials/:id
-  const delRes = await fetch(`${baseUrl}/materials/${materialId}`, { method: "DELETE" });
+  const delRes = await fetch(`${baseUrl}/materials/${materialId}`, { method: "DELETE", headers: authHeader() });
   assert.equal(delRes.status, 200);
 
   // Verify deletion in DB
@@ -98,7 +103,7 @@ test("GET /materials/:id/download-url com url pública retorna link de download"
   });
 
   try {
-    const response = await fetch(`${baseUrl}/materials/${material.id}/download-url`);
+    const response = await fetch(`${baseUrl}/materials/${material.id}/download-url`, { headers: authHeader() });
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.success, true);
@@ -217,7 +222,7 @@ test("POST /materials/upload com arquivo multipart real, acentos e espaços", as
   assert.equal(checkDb, null);
 
   // GET /materials/:id após exclusão retorna 404
-  const notFoundRes = await fetch(`${baseUrl}/materials/${materialId}`);
+  const notFoundRes = await fetch(`${baseUrl}/materials/${materialId}`, { headers: authHeader() });
   assert.equal(notFoundRes.status, 404);
 });
 

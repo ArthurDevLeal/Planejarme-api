@@ -3,7 +3,7 @@ import { ForbiddenException } from "../exceptions/forbidden.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
 
-type Resource = "user" | "discipline" | "task" | "schedule" | "evaluation" | "semester";
+type Resource = "user" | "discipline" | "task" | "schedule" | "evaluation" | "semester" | "inbox" | "notification" | "material";
 function assertOwner(ownerId: string, userId: string) {
   if (ownerId !== userId) throw new ForbiddenException("Você não tem permissão para acessar este registro.", ErrorCode.FORBIDDEN);
 }
@@ -59,6 +59,23 @@ export async function AuthorizeRequestService(
     case "evaluation": {
       owner = (await prisma.evaluation.findUnique({ where: { id: params.id }, select: { discipline: { select: { userId: true } } } }))?.discipline.userId;
       code = ErrorCode.EVALUATION_NOT_FOUND;
+      break;
+    }
+    case "inbox": {
+      owner = (await prisma.inboxItem.findUnique({ where: { id: params.id }, select: { userId: true } }))?.userId;
+      code = ErrorCode.INBOX_ITEM_NOT_FOUND;
+      break;
+    }
+    case "notification": {
+      owner = (await prisma.notification.findUnique({ where: { id: params.id }, select: { userId: true } }))?.userId;
+      code = ErrorCode.NOTIFICATION_NOT_FOUND;
+      break;
+    }
+    case "material": {
+      // Materiais antigos podem não ter userId; o dono passa a ser o da disciplina.
+      const material = await prisma.material.findUnique({ where: { id: params.id }, select: { userId: true, discipline: { select: { userId: true } } } });
+      owner = material?.userId ?? material?.discipline?.userId;
+      code = ErrorCode.MATERIAL_NOT_FOUND;
       break;
     }
   }

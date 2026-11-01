@@ -1,8 +1,10 @@
 import { Router } from "express";
+import { AuthMiddleware } from "../middlewares/auth.ts";
 import { NotificationController } from "../controllers/notification-controller.ts";
 
 const notificationRouter = Router();
 const controller = new NotificationController();
+notificationRouter.use(AuthMiddleware);
 
 notificationRouter.get("/user/:userId/unread", controller.GetUnreadNotificationsByUser);
 notificationRouter.get("/user/:userId", controller.GetNotificationsByUser);

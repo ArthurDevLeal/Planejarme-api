@@ -2,6 +2,7 @@
 
 import cors from "cors";
 import express, { urlencoded } from "express";
+import helmet from "helmet";
 import { NotFoundException } from "./exceptions/not-found.ts";
 import { ErrorCode } from "./exceptions/root.ts";
 import { ErrorMiddleware } from "./middlewares/errors.ts";
@@ -16,6 +17,9 @@ const corsMiddleware = cors({
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 });
 
+// Na Vercel o IP real do cliente chega por X-Forwarded-For; necessário para o RateLimit.
+app.set("trust proxy", 1);
+app.use(helmet());
 app.use(corsMiddleware);
 
 app.use(express.json());

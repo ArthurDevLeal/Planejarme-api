@@ -1,15 +1,16 @@
 import { ValidationException } from "../exceptions/validation.ts";
-import { compare } from "bcrypt";
+import { compare, hashSync } from "bcrypt";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
-import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
 import { SignInSchema } from "../schemas/auth-schema.ts";
 import { FindUserByEmailSchema } from "../schemas/user-schema.ts";
 import { FindUserByEmailService } from "../services/user/find-user-by-email.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
+
+const DUMMY_PASSWORD_HASH = hashSync("planejarme-dummy-password", 10);
 
 export class AuthController {
   SingIn = ErrorHandler(async (req: Request, res: Response) => {
@@ -24,12 +25,9 @@ export class AuthController {
     }
 
     const user = await FindUserByEmailService(emailSchema.data);
-    if (!user) {
-      throw new NotFoundException("Não encontramos uma conta com esse e-mail. Confira o e-mail ou crie uma conta.", ErrorCode.USER_NOT_FOUND);
-    }
-
-    const isPasswordValid = await compare(result.data.password, user.passwordHash);
-    if (!isPasswordValid) {
+    // Mesmo erro e mesmo custo de bcrypt para e-mail inexistente: não revela quais contas existem.
+    const isPasswordValid = await compare(result.data.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
+    if (!user || !isPasswordValid) {
       throw new BadRequestsException("E-mail ou senha incorretos. Confira os dados e tente novamente.", ErrorCode.INVALID_CREDENTIALS);
     }
 

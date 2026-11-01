@@ -9,3 +9,6 @@ dist
 .agents
 .claude
 .windsurf
+
+# Snapshots locais do banco de dev (contêm dados e hashes de senha)
+/prisma/backups

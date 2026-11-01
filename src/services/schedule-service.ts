@@ -1,8 +1,27 @@
 import { prisma } from "../../lib/prisma.ts";
+import { NotFoundException } from "../exceptions/not-found.ts";
+import { ErrorCode } from "../exceptions/root.ts";
 import { CreateScheduleSchemaType, UpdateScheduleSchemaType } from "../schemas/schedule-schema.ts";
+import { attendanceAnchorForSemester } from "./semester-service.ts";
 
-export function CreateScheduleService(data: CreateScheduleSchemaType) {
-  return prisma.schedule.create({ data });
+export async function CreateScheduleService(data: CreateScheduleSchemaType) {
+  const discipline = await prisma.discipline.findUnique({
+    where: { id: data.disciplineId },
+    select: { semesterId: true },
+  });
+  if (!discipline) {
+    throw new NotFoundException(
+      "Disciplina não encontrada. O registro pode ter sido removido.",
+      ErrorCode.DISCIPLINE_NOT_FOUND,
+    );
+  }
+
+  // Aulas de um horário contam a partir do início do semestre da disciplina.
+  const attendanceSince = discipline.semesterId
+    ? await attendanceAnchorForSemester(discipline.semesterId)
+    : undefined;
+
+  return prisma.schedule.create({ data: { ...data, attendanceSince } });
 }
 
 export function FindScheduleByIdService(id: string) {

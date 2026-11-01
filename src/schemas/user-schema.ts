@@ -39,13 +39,22 @@ const UpdateUserSchema = z.object({
   defaultGradingSystem: z.enum(["ARITHMETIC", "WEIGHTED"]).optional(),
 });
 
+const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(6).max(255),
+  newPassword: z.string().min(6).max(255),
+});
+
 type CreateUserSchemaType = z.infer<typeof CreateUserSchema>;
 type FindUserByIdSchemaType = z.infer<typeof FindUserByIdSchema>;
 type UserIdSchemaType = z.infer<typeof UserIdSchema>;
 type DeleteUserSchemaType = z.infer<typeof DeleteUserSchema>;
 type UpdateUserSchemaType = z.infer<typeof UpdateUserSchema>;
 type FindUserByEmailSchemaType = z.infer<typeof FindUserByEmailSchema>;
+type ChangePasswordSchemaType = z.infer<typeof ChangePasswordSchema>;
+
 export {
+  ChangePasswordSchema,
+  ChangePasswordSchemaType,
   CreateUserSchema,
   CreateUserSchemaType,
   DeleteUserSchema,

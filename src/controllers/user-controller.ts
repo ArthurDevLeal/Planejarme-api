@@ -5,6 +5,7 @@ import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
 import { UserAlreadyExistsException } from "../exceptions/user-already-exists.ts";
 import {
+  ChangePasswordSchema,
   CreateUserSchema,
   DeleteUserSchema,
   FindUserByIdSchema,
@@ -15,6 +16,7 @@ import { CreateUserService } from "../services/user/create-user.ts";
 import { DeleteUserService } from "../services/user/delete-user.ts";
 import { FindUserByIdService } from "../services/user/find-user-by-id.ts";
 import { GetUserDashboardService } from "../services/user/get-user-dashboard.ts";
+import { ChangePasswordService } from "../services/user/change-password.ts";
 import { UpdateUserService } from "../services/user/update-user.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
@@ -95,8 +97,20 @@ export class UserController {
     return sendSuccess(res, withoutPasswordHash(user), "User updated");
   });
 
-  DeleteUser = ErrorHandler(async (req: Request, res: Response) => {
-    await AuthorizeRequestService(req.userId, "user", req.params, req.body);
+  UpdatePassword = ErrorHandler(async (req: Request, res: Response) => {
+    const body = ChangePasswordSchema.safeParse(req.body);
+    if (!body.success) {
+      throw new ValidationException(
+        "Os dados enviados são inválidos. Confira os campos indicados e tente novamente.",
+        body,
+      );
+    }
+
+    await ChangePasswordService(req.userId, body.data.currentPassword, body.data.newPassword);
+    return sendSuccess(res, null, "Password updated");
+  });
+
+  DeleteUser = ErrorHandler(async (req: Request, res: Response) => {    await AuthorizeRequestService(req.userId, "user", req.params, req.body);
     const result = DeleteUserSchema.safeParse(req.params);
     if (!result.success) {
       throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);

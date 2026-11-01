@@ -8,6 +8,7 @@ const controller = new UserController();
 userRouter.post("/", controller.CreateUser);
 userRouter.use(AuthMiddleware);
 userRouter.get("/me/dashboard", controller.GetCurrentUserDashboard);
+userRouter.patch("/me/password", controller.UpdatePassword);
 
 userRouter.get("/:userId/dashboard", controller.GetUserDashboard);
 userRouter.get("/:id", controller.GetUserById);

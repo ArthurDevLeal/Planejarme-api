@@ -48,11 +48,11 @@ model PasswordResetToken {
 }
 
 model Semester {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
-  startDate DateTime?
-  endDate   DateTime?
-  isCurrent Boolean   @default(false)
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

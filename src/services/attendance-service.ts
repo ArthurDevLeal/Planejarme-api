@@ -2,7 +2,7 @@ import { prisma } from "../../lib/prisma.ts";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
-import { brasiliaDate, scheduleAbsences } from "../utils/academic-date.ts";
+import { attendanceWindowEnd, brasiliaDate, courseWindow, effectiveAttendanceStart, scheduleAbsences } from "../utils/academic-date.ts";
 
 export async function SetAttendanceService(userId: string, scheduleId: string, attended: boolean, requestedDate?: string) {
   const today = brasiliaDate();
@@ -12,6 +12,7 @@ export async function SetAttendanceService(userId: string, scheduleId: string, a
     include: {
       discipline: {
         include: {
+          semester: true,
           schedules: {
             include: { attendances: true },
           },
@@ -20,10 +21,11 @@ export async function SetAttendanceService(userId: string, scheduleId: string, a
     },
   });
   if (!schedule) throw new NotFoundException("Aula não encontrada.", ErrorCode.SCHEDULE_NOT_FOUND);
-  const end = new Date(schedule.attendanceSince);
-  end.setUTCDate(end.getUTCDate() + 15 * 7 - 1);
-  if (schedule.dayOfWeek !== date.getUTCDay() || schedule.attendanceSince > date || date > end || date > new Date(`${today}T00:00:00Z`)) {
-    throw new BadRequestsException("A data precisa ser um dia de aula dentro das 15 semanas do semestre.", ErrorCode.INVALID_DATA);
+  const window = courseWindow(schedule.discipline.semester);
+  const start = effectiveAttendanceStart(schedule.attendanceSince, window);
+  const end = attendanceWindowEnd(schedule.attendanceSince, today, window);
+  if (schedule.dayOfWeek !== date.getUTCDay() || date.getTime() < start.getTime() || date.getTime() > end || date > new Date(`${today}T00:00:00Z`)) {
+    throw new BadRequestsException("A data precisa ser um dia de aula dentro do período letivo do semestre.", ErrorCode.INVALID_DATA);
   }
 
   // RN04 — Trava de Carga Horária Excedida:
@@ -35,7 +37,7 @@ export async function SetAttendanceService(userId: string, scheduleId: string, a
     const currentAbsences =
       schedule.discipline.absences +
       schedule.discipline.schedules.reduce(
-        (total, s) => total + scheduleAbsences(s, today),
+        (total, s) => total + scheduleAbsences(s, today, window),
         0
       );
     // Se o registro anterior era attended = true, alterá-lo para attended = false adiciona 1 falta.

@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -9,6 +12,7 @@ CREATE TABLE "User" (
     "institution" TEXT,
     "passingScore" DOUBLE PRECISION NOT NULL DEFAULT 7.0,
     "maxAbsencePct" DOUBLE PRECISION NOT NULL DEFAULT 25.0,
+    "defaultGradingSystem" TEXT DEFAULT 'ARITHMETIC',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -27,6 +31,20 @@ CREATE TABLE "PasswordResetToken" (
 );
 
 -- CreateTable
+CREATE TABLE "Semester" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "startDate" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
+    "isCurrent" BOOLEAN NOT NULL DEFAULT false,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Semester_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Discipline" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -36,6 +54,7 @@ CREATE TABLE "Discipline" (
     "absences" INTEGER NOT NULL DEFAULT 0,
     "gradingSystem" TEXT NOT NULL DEFAULT 'ARITHMETIC',
     "userId" TEXT NOT NULL,
+    "semesterId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -46,11 +65,22 @@ CREATE TABLE "Discipline" (
 CREATE TABLE "Schedule" (
     "id" TEXT NOT NULL,
     "dayOfWeek" INTEGER NOT NULL,
-    "startTime" TEXT NOT NULL,
-    "endTime" TEXT NOT NULL,
+    "startTime" TEXT,
+    "endTime" TEXT,
+    "attendanceSince" DATE NOT NULL DEFAULT ((CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date),
     "disciplineId" TEXT NOT NULL,
 
     CONSTRAINT "Schedule_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ScheduleAttendance" (
+    "id" TEXT NOT NULL,
+    "scheduleId" TEXT NOT NULL,
+    "date" DATE NOT NULL,
+    "attended" BOOLEAN NOT NULL,
+
+    CONSTRAINT "ScheduleAttendance_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -60,6 +90,9 @@ CREATE TABLE "Material" (
     "type" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "fileSizeMb" DOUBLE PRECISION,
+    "mimeType" TEXT,
+    "storagePath" TEXT,
+    "userId" TEXT,
     "disciplineId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -90,6 +123,7 @@ CREATE TABLE "Task" (
     "completedAt" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
     "disciplineId" TEXT,
+    "semesterId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -131,14 +165,29 @@ CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 -- CreateIndex
 CREATE UNIQUE INDEX "PasswordResetToken_token_key" ON "PasswordResetToken"("token");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Semester_userId_name_key" ON "Semester"("userId", "name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ScheduleAttendance_scheduleId_date_key" ON "ScheduleAttendance"("scheduleId", "date");
+
 -- AddForeignKey
 ALTER TABLE "PasswordResetToken" ADD CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Semester" ADD CONSTRAINT "Semester_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Discipline" ADD CONSTRAINT "Discipline_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Discipline" ADD CONSTRAINT "Discipline_semesterId_fkey" FOREIGN KEY ("semesterId") REFERENCES "Semester"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Schedule" ADD CONSTRAINT "Schedule_disciplineId_fkey" FOREIGN KEY ("disciplineId") REFERENCES "Discipline"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ScheduleAttendance" ADD CONSTRAINT "ScheduleAttendance_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES "Schedule"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Material" ADD CONSTRAINT "Material_disciplineId_fkey" FOREIGN KEY ("disciplineId") REFERENCES "Discipline"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -151,6 +200,9 @@ ALTER TABLE "Task" ADD CONSTRAINT "Task_userId_fkey" FOREIGN KEY ("userId") REFE
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_disciplineId_fkey" FOREIGN KEY ("disciplineId") REFERENCES "Discipline"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Task" ADD CONSTRAINT "Task_semesterId_fkey" FOREIGN KEY ("semesterId") REFERENCES "Semester"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "InboxItem" ADD CONSTRAINT "InboxItem_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

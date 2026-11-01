@@ -4,12 +4,14 @@ import { ValidationException } from "../exceptions/validation.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
 import {
+  CopyDisciplinesSchema,
   CreateSemesterSchema,
   SemesterIdSchema,
   UpdateSemesterSchema,
   UserIdSchema,
 } from "../schemas/semester-schema.ts";
 import {
+  CopyDisciplinesService,
   CreateSemesterService,
   DeleteSemesterService,
   FindSemesterByIdService,
@@ -101,5 +103,29 @@ export class SemesterController {
     }
     await DeleteSemesterService(result.data.id);
     return sendSuccess(res, null, "Semester deleted");
+  });
+
+  CopyDisciplines = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "semester", req.params, req.body);
+    const params = SemesterIdSchema.safeParse(req.params);
+    const body = CopyDisciplinesSchema.safeParse(req.body);
+    if (!params.success || !body.success) {
+      throw new ValidationException(
+        "Os dados enviados são inválidos. Confira os campos indicados e tente novamente.",
+        params,
+        body,
+      );
+    }
+    const disciplines = await CopyDisciplinesService(
+      req.userId,
+      params.data.id,
+      body.data,
+    );
+    return sendSuccess(
+      res,
+      { copied: disciplines.length, disciplines },
+      "Disciplines copied",
+      201,
+    );
   });
 }

@@ -1,4 +1,4 @@
-import { brasiliaDate, scheduleAbsences } from "../../utils/academic-date.ts";
+import { brasiliaDate, courseWindow, scheduleAbsences } from "../../utils/academic-date.ts";
 import { prisma } from "../../../lib/prisma.ts";
 import { EnsureUserHasCurrentSemester } from "../semester-service.ts";
 
@@ -43,6 +43,7 @@ export async function GetUserDashboardService(
       prisma.discipline.findMany({
         where: { userId, ...semesterFilter },
         include: {
+          semester: true,
           schedules: { include: { attendances: true } },
           materials: true,
           evaluations: true,
@@ -77,8 +78,9 @@ export async function GetUserDashboardService(
 
   const today = brasiliaDate();
   const disciplines = disciplinesData.map((discipline) => {
+    const window = courseWindow(discipline.semester);
     const scheduleAbsencesTotal = discipline.schedules.reduce(
-      (total, schedule) => total + scheduleAbsences(schedule, today),
+      (total, schedule) => total + scheduleAbsences(schedule, today, window),
       0,
     );
     const totalAbsences = Math.min(

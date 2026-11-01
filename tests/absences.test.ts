@@ -218,7 +218,7 @@ test(
       UpdateDisciplineService,
     } = await import("../src/services/discipline-service.ts");
     const { GetUserDashboardService } = await import("../src/services/user/get-user-dashboard.ts");
-    const { brasiliaDate } = await import("../src/utils/academic-date.ts");
+    const { brasiliaDate, scheduledClassCount } = await import("../src/utils/academic-date.ts");
 
     const today = brasiliaDate();
     const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
@@ -232,9 +232,25 @@ test(
       },
     });
 
+    // Período letivo começando 5 semanas antes de hoje: a contagem de aulas
+    // passa a usar o início do semestre como piso (nova regra de datas).
+    const semesterStart = new Date(`${today}T00:00:00Z`);
+    semesterStart.setUTCDate(semesterStart.getUTCDate() - 5 * 7);
+    const semesterEnd = new Date(`${today}T00:00:00Z`);
+    semesterEnd.setUTCMonth(semesterEnd.getUTCMonth() + 3);
+    await prisma.semester.create({
+      data: {
+        name: "2026.2",
+        isCurrent: true,
+        userId: user.id,
+        startDate: semesterStart,
+        endDate: semesterEnd,
+      },
+    });
+
     try {
       // 1. RN04 no CreateDisciplineService: proibir criação com faltas > carga horária
-      assert.throws(
+      await assert.rejects(
         () =>
           CreateDisciplineService({
             name: "Inválida",
@@ -258,13 +274,17 @@ test(
       assert.equal(discipline.schedules.length, 1);
       const schedule = discipline.schedules[0];
 
-      // 3. Consultar dashboard: absences deve ser manualAbsences (2) + scheduleAbsences (1) = 3
+      // 3. Consultar dashboard: o horário é ancorado no início do semestre
+      // (5 semanas atrás), então conta as aulas semanais desde lá até hoje.
+      const expectedScheduleAbsences = scheduledClassCount(semesterStart, today, weekday);
+      assert.equal(expectedScheduleAbsences, 6);
+
       let dashboard = await GetUserDashboardService(user.id);
       assert.ok(dashboard);
       const discDashboard = dashboard.disciplines[0];
       assert.equal(discDashboard.manualAbsences, 2);
-      assert.equal(discDashboard.scheduleAbsences, 1);
-      assert.equal(discDashboard.absences, 3);
+      assert.equal(discDashboard.scheduleAbsences, expectedScheduleAbsences);
+      assert.equal(discDashboard.absences, 2 + expectedScheduleAbsences);
 
       // 4. RN03: Registrar falta para o dia de hoje é idempotente
       const firstSet = await SetAttendanceService(user.id, schedule.id, false, today);
@@ -274,7 +294,7 @@ test(
       assert.equal(secondSet.attended, false);
 
       dashboard = await GetUserDashboardService(user.id);
-      assert.equal(dashboard?.disciplines[0].absences, 3);
+      assert.equal(dashboard?.disciplines[0].absences, 2 + expectedScheduleAbsences);
 
       // 5. RN03: Reverter falta (marcar presença) reduz a contagem de faltas
       const presenceSet = await SetAttendanceService(user.id, schedule.id, true, today);
@@ -284,17 +304,20 @@ test(
       await SetAttendanceService(user.id, schedule.id, true, today);
 
       dashboard = await GetUserDashboardService(user.id);
-      assert.equal(dashboard?.disciplines[0].absences, 2); // 2 manual + 0 schedule
+      assert.equal(dashboard?.disciplines[0].absences, 1 + expectedScheduleAbsences);
 
-      // 6. RN04 no UpdateDisciplineService: não pode ultrapassar carga horária
-      // Carga horária é 60. Schedule absences é 0. Manual até 60 é aceito.
-      await UpdateDisciplineService(discipline.id, { absences: 60 });
+      // 6. RN04 no UpdateDisciplineService: manual + horário não pode ultrapassar a carga
+      // Carga horária 60; o teto manual é o restante depois das faltas de horário atuais.
       dashboard = await GetUserDashboardService(user.id);
-      assert.equal(dashboard?.disciplines[0].absences, 60);
+      const currentScheduled = dashboard?.disciplines[0].scheduleAbsences ?? 0;
+      const manualCeiling = discipline.workloadHours - currentScheduled;
+      await UpdateDisciplineService(discipline.id, { absences: manualCeiling });
+      dashboard = await GetUserDashboardService(user.id);
+      assert.equal(dashboard?.disciplines[0].absences, discipline.workloadHours);
 
-      // Tentar atualizar manual para 61 deve falhar
+      // Um valor acima do teto é rejeitado
       await assert.rejects(
-        () => UpdateDisciplineService(discipline.id, { absences: 61 }),
+        () => UpdateDisciplineService(discipline.id, { absences: manualCeiling + 1 }),
         { message: "O número de faltas não pode ultrapassar a carga horária total." }
       );
 
@@ -304,7 +327,9 @@ test(
         { message: "O número de faltas não pode ser negativo." }
       );
 
-      // 7. RN04 no SetAttendanceService: com manual em 60, não pode adicionar falta em horário
+      // 7. RN04 no SetAttendanceService: carga horária já atingida, então
+      // converter a presença de hoje em falta é bloqueado.
+      await SetAttendanceService(user.id, schedule.id, true, today);
       await assert.rejects(
         () => SetAttendanceService(user.id, schedule.id, false, today),
         { message: "O número de faltas não pode ultrapassar a carga horária total da disciplina." }

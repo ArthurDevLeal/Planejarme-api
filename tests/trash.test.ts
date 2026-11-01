@@ -86,7 +86,7 @@ test("RN16 e RF13: lixeira, restauração, exclusão definitiva, limpeza e anexo
     // Excluir manda para a lixeira: some das listas e do GET, aparece em /trash.
     assert.equal((await call(`/tasks/${task.id}`, "DELETE")).status, 200);
     assert.equal((await call(`/tasks/${task.id}`)).status, 404);
-    assert.ok(!(await call(`/tasks/user/me`)).body.data.some((t: { id: string }) => t.id === task.id));
+    assert.ok(!(await call(`/tasks/user/${owner.id}`)).body.data.some((t: { id: string }) => t.id === task.id));
     const trash = await call("/trash");
     assert.equal(trash.body.data.retentionDays, 30);
     assert.deepEqual(trash.body.data.tasks.map((t: { id: string }) => t.id), [task.id]);

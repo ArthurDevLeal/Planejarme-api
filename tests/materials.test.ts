@@ -87,9 +87,12 @@ test("POST /materials ignora storagePath e userId vindos do corpo", async () => 
   const delRes = await fetch(`${baseUrl}/materials/${materialId}`, { method: "DELETE", headers: authHeader() });
   assert.equal(delRes.status, 200);
 
-  // Verify deletion in DB
+  // RN16: excluir manda para a lixeira (deletedAt) em vez de apagar
   const checkDel = await prisma.material.findUnique({ where: { id: materialId } });
-  assert.equal(checkDel, null);
+  assert.ok(checkDel?.deletedAt);
+  const forever = await fetch(`${baseUrl}/trash/material/${materialId}`, { method: "DELETE", headers: authHeader() });
+  assert.equal(forever.status, 200);
+  assert.equal(await prisma.material.findUnique({ where: { id: materialId } }), null);
 });
 
 test("GET /materials/:id/download-url com url pública retorna link de download", async () => {
@@ -217,12 +220,17 @@ test("POST /materials/upload com arquivo multipart real, acentos e espaços", as
   });
   assert.equal(delRes.status, 200);
 
-  // Verificação no banco
+  // Verificação no banco: foi para a lixeira (RN16)
   const checkDb = await prisma.material.findUnique({ where: { id: materialId } });
-  assert.equal(checkDb, null);
+  assert.ok(checkDb?.deletedAt);
 
   // GET /materials/:id após exclusão retorna 404
   const notFoundRes = await fetch(`${baseUrl}/materials/${materialId}`, { headers: authHeader() });
   assert.equal(notFoundRes.status, 404);
+
+  // Exclusão definitiva apaga o registro e o arquivo no Storage
+  const forever = await fetch(`${baseUrl}/trash/material/${materialId}`, { method: "DELETE", headers: authHeader() });
+  assert.equal(forever.status, 200);
+  assert.equal(await prisma.material.findUnique({ where: { id: materialId } }), null);
 });
 

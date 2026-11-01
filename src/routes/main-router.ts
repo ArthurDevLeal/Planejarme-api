@@ -10,6 +10,7 @@ import { taskRouter } from "./task-router.ts";
 import { userRouter } from "./user-router.ts";
 
 import { semesterRouter } from "./semester-router.ts";
+import { cronRouter } from "./cron-router.ts";
 
 const mainRouter = Router();
 
@@ -23,5 +24,6 @@ mainRouter.use("/materials", materialRouter);
 mainRouter.use("/tasks", taskRouter);
 mainRouter.use("/inbox-items", inboxItemRouter);
 mainRouter.use("/notifications", notificationRouter);
+mainRouter.use("/cron", cronRouter);
 
 export { mainRouter };

@@ -7,6 +7,7 @@ const controller = new NotificationController();
 notificationRouter.use(AuthMiddleware);
 
 notificationRouter.get("/user/:userId/unread", controller.GetUnreadNotificationsByUser);
+notificationRouter.patch("/user/:userId/read-all", controller.MarkAllNotificationsAsRead);
 notificationRouter.get("/user/:userId", controller.GetNotificationsByUser);
 notificationRouter.get("/:id", controller.GetNotificationById);
 notificationRouter.post("/", controller.CreateNotification);

@@ -15,6 +15,7 @@ import {
   FindNotificationByIdService,
   FindNotificationsByUserService,
   FindUnreadNotificationsByUserService,
+  MarkAllNotificationsAsReadService,
   MarkNotificationAsReadService,
   UpdateNotificationService,
 } from "../services/notification-service.ts";
@@ -78,6 +79,15 @@ export class NotificationController {
       await MarkNotificationAsReadService(result.data.id),
       "Notification marked as read",
     );
+  });
+
+  MarkAllNotificationsAsRead = ErrorHandler(async (req: Request, res: Response) => {
+    const targetUserId = req.params.userId === "me" ? req.userId : req.params.userId;
+    await AuthorizeRequestService(req.userId, "notification", { ...req.params, userId: targetUserId }, req.body);
+    const result = UserIdSchema.safeParse({ userId: targetUserId });
+    if (!result.success) throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
+    const { count } = await MarkAllNotificationsAsReadService(result.data.userId);
+    return sendSuccess(res, { updated: count }, "Notifications marked as read");
   });
 
   DeleteNotification = ErrorHandler(async (req: Request, res: Response) => {

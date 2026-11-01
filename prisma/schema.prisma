@@ -179,7 +179,11 @@ model Notification {
   message   String
   type      String
   read      Boolean  @default(false)
+  // Alertas automáticos (RF17): a chave impede gerar o mesmo aviso duas vezes. Nulo para avisos manuais.
+  dedupeKey String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
 }

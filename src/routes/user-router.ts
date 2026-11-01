@@ -10,6 +10,7 @@ userRouter.post("/", RateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), controlle
 userRouter.use(AuthMiddleware);
 userRouter.get("/me/dashboard", controller.GetCurrentUserDashboard);
 userRouter.patch("/me/password", controller.UpdatePassword);
+userRouter.get("/me/export", controller.ExportCurrentUserData);
 
 userRouter.get("/:userId/dashboard", controller.GetUserDashboard);
 userRouter.get("/:id", controller.GetUserById);

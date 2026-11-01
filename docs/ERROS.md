@@ -16,10 +16,19 @@ Validação: `npm test` (37 testes), `npm run typecheck` e `npm run build`. Os t
 
 ## Autenticação e isolamento
 
-Todas as rotas exigem `Authorization: Bearer <token>`, exceto `POST /auth/signin` e `POST /users` (cadastro). Acesso a registro de outro usuário retorna 403 `FORBIDDEN`; registro inexistente retorna 404 com o código do recurso. A checagem fica em `src/services/authorization-service.ts`; o alias `me` nas rotas `/user/:userId` aponta para o usuário do token.
+Todas as rotas exigem `Authorization: Bearer <token>`, exceto `POST /auth/signin`, `POST /auth/forgot-password`, `POST /auth/reset-password` e `POST /users` (cadastro). Acesso a registro de outro usuário retorna 403 `FORBIDDEN`; registro inexistente retorna 404 com o código do recurso. A checagem fica em `src/services/authorization-service.ts`; o alias `me` nas rotas `/user/:userId` aponta para o usuário do token.
 
 Em materiais, `userId` e `storagePath` nunca vêm do corpo: o dono é o usuário do token e o `storagePath` só é definido pelo upload. Materiais antigos sem `userId` pertencem ao dono da disciplina.
 
 Login com e-mail inexistente ou senha errada responde igual: 400 `INVALID_CREDENTIALS`, com o mesmo custo de bcrypt.
 
 Testes: `tests/isolation.test.ts` (rode com `RUN_DB_TESTS=1` para incluir os casos com banco).
+
+## Conta (RF02, RN23, RNF04)
+
+- `POST /auth/forgot-password` `{ email }`: sempre 200 com a mesma resposta, exista ou não a conta. Envia pelo Resend um link de uso único que vale 30 minutos; o banco guarda só o SHA-256 do token. Sem `RESEND_API_KEY`, fora de produção o link aparece no log da API.
+- `POST /auth/reset-password` `{ token, password }`: link inválido, usado ou expirado retorna 400 `PASSWORD_RESET_TOKEN_EXPIRED`. Sessões JWT já emitidas continuam válidas até expirar.
+- `GET /users/me/export`: JSON com todos os dados do usuário (sem `passwordHash`), incluindo materiais.
+- `DELETE /users/me` `{ password }`: exige a senha (400 `INVALID_DATA` se errada ou ausente). Apaga materiais, arquivos do Storage e, em cascata, o resto da conta.
+
+Limites por IP: 5 pedidos de link e 10 redefinições a cada 15 minutos.

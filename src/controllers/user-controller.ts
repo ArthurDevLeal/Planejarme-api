@@ -14,6 +14,7 @@ import {
 } from "../schemas/user-schema.ts";
 import { CreateUserService } from "../services/user/create-user.ts";
 import { DeleteUserService } from "../services/user/delete-user.ts";
+import { ExportUserDataService } from "../services/user/export-user-data.ts";
 import { FindUserByIdService } from "../services/user/find-user-by-id.ts";
 import { GetUserDashboardService } from "../services/user/get-user-dashboard.ts";
 import { ChangePasswordService } from "../services/user/change-password.ts";
@@ -111,12 +112,18 @@ export class UserController {
   });
 
   DeleteUser = ErrorHandler(async (req: Request, res: Response) => {    await AuthorizeRequestService(req.userId, "user", req.params, req.body);
-    const result = DeleteUserSchema.safeParse(req.params);
+    const result = DeleteUserSchema.safeParse({ ...req.body, id: req.params.id });
     if (!result.success) {
-      throw new ValidationException("O identificador de usuário é inválido. Confira o registro selecionado.", result);
+      throw new ValidationException("Confirme a exclusão digitando sua senha.", result);
     }
 
-    await DeleteUserService(result.data);
+    await DeleteUserService(result.data.id === "me" ? req.userId : result.data.id, result.data.password);
     return sendSuccess(res, null, "User deleted");
+  });
+
+  ExportCurrentUserData = ErrorHandler(async (req: Request, res: Response) => {
+    const data = await ExportUserDataService(req.userId);
+    if (!data) throw new NotFoundException("Usuário não encontrado.", ErrorCode.USER_NOT_FOUND);
+    return sendSuccess(res, data);
   });
 }

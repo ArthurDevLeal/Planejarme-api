@@ -25,6 +25,7 @@ const FindUserByEmailSchema = z.object({
 
 const DeleteUserSchema = z.object({
   id: z.string(),
+  password: z.string().min(1).max(255),
 });
 
 const UpdateUserSchema = z.object({

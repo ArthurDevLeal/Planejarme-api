@@ -4,13 +4,14 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { ErrorCode } from "../exceptions/root.ts";
-import { SignInSchema } from "../schemas/auth-schema.ts";
+import { ForgotPasswordSchema, ResetPasswordSchema, SignInSchema } from "../schemas/auth-schema.ts";
+import { RequestPasswordResetService, ResetPasswordService } from "../services/auth/password-reset.ts";
 import { FindUserByEmailSchema } from "../schemas/user-schema.ts";
 import { FindUserByEmailService } from "../services/user/find-user-by-email.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
-const DUMMY_PASSWORD_HASH = hashSync("planejarme-dummy-password", 10);
+const DUMMY_PASSWORD_HASH = hashSync("planejarme-dummy-password", 8);
 
 export class AuthController {
   SingIn = ErrorHandler(async (req: Request, res: Response) => {
@@ -34,5 +35,23 @@ export class AuthController {
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, { expiresIn: "7d" });
 
     return sendSuccess(res, { token }, "User signed in");
+  });
+
+  ForgotPassword = ErrorHandler(async (req: Request, res: Response) => {
+    const result = ForgotPasswordSchema.safeParse(req.body);
+    if (!result.success) {
+      throw new ValidationException("O e-mail informado é inválido. Confira o endereço.", result);
+    }
+    await RequestPasswordResetService(result.data.email);
+    return sendSuccess(res, null, "If the account exists, a reset link was sent");
+  });
+
+  ResetPassword = ErrorHandler(async (req: Request, res: Response) => {
+    const result = ResetPasswordSchema.safeParse(req.body);
+    if (!result.success) {
+      throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", result);
+    }
+    await ResetPasswordService(result.data.token, result.data.password);
+    return sendSuccess(res, null, "Password reset");
   });
 }

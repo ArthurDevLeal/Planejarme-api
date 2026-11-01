@@ -1,7 +1,7 @@
 import { ValidationException } from "../exceptions/validation.ts";
 import { compare, hashSync } from "bcrypt";
 import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
+import { signSessionToken } from "../utils/session-token.ts";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { ErrorCode } from "../exceptions/root.ts";
 import { ForgotPasswordSchema, ResetPasswordSchema, SignInSchema } from "../schemas/auth-schema.ts";
@@ -32,7 +32,7 @@ export class AuthController {
       throw new BadRequestsException("E-mail ou senha incorretos. Confira os dados e tente novamente.", ErrorCode.INVALID_CREDENTIALS);
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, { expiresIn: "7d" });
+    const token = signSessionToken(user.id);
 
     return sendSuccess(res, { token }, "User signed in");
   });

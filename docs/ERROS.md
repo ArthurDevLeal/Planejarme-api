@@ -16,7 +16,7 @@ Validação: `npm test` (37 testes), `npm run typecheck` e `npm run build`. Os t
 
 ## Autenticação e isolamento
 
-Todas as rotas exigem `Authorization: Bearer <token>`, exceto `POST /auth/signin`, `POST /auth/forgot-password`, `POST /auth/reset-password` e `POST /users` (cadastro). Acesso a registro de outro usuário retorna 403 `FORBIDDEN`; registro inexistente retorna 404 com o código do recurso. A checagem fica em `src/services/authorization-service.ts`; o alias `me` nas rotas `/user/:userId` aponta para o usuário do token.
+Todas as rotas exigem `Authorization: Bearer <token>`, exceto `POST /auth/signin`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /auth/oauth/:provider` (+ `/callback`) e `POST /users` (cadastro). Acesso a registro de outro usuário retorna 403 `FORBIDDEN`; registro inexistente retorna 404 com o código do recurso. A checagem fica em `src/services/authorization-service.ts`; o alias `me` nas rotas `/user/:userId` aponta para o usuário do token.
 
 Em materiais, `userId` e `storagePath` nunca vêm do corpo: o dono é o usuário do token e o `storagePath` só é definido pelo upload. Materiais antigos sem `userId` pertencem ao dono da disciplina.
 
@@ -32,3 +32,9 @@ Testes: `tests/isolation.test.ts` (rode com `RUN_DB_TESTS=1` para incluir os cas
 - `DELETE /users/me` `{ password }`: exige a senha (400 `INVALID_DATA` se errada ou ausente). Apaga materiais, arquivos do Storage e, em cascata, o resto da conta.
 
 Limites por IP: 5 pedidos de link e 10 redefinições a cada 15 minutos.
+
+## Login com Google e GitHub (UC01)
+
+`GET /auth/oauth/:provider` (`google` ou `github`) redireciona ao provedor e grava o `state` num cookie `httpOnly` (`SameSite=Lax`, 10 min). O provedor volta em `GET /auth/oauth/:provider/callback`, que confere o `state`, troca o código, exige e-mail verificado e redireciona ao web em `/auth/oauth/callback#token=...` (`&new=1` para conta nova, que segue para o onboarding). Erros não viram JSON: voltam como `#error=unavailable|denied|state|email|failed`.
+
+A conta é ligada pelo e-mail verificado: se já existe conta com esse e-mail, entra nela; senão cria uma com senha aleatória (o usuário pode criar uma senha em "Esqueci minha senha"). Variáveis: `API_URL`, `WEB_URL`, `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET`.

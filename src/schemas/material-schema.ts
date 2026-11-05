@@ -8,6 +8,7 @@ const CreateMaterialSchema = z.object({
   mimeType: z.string().optional(),
   disciplineId: z.string().min(1).optional().nullable(),
   taskId: z.string().min(1).optional().nullable(),
+  folderId: z.string().min(1).optional().nullable(),
 });
 
 const UpdateMaterialSchema = CreateMaterialSchema.partial();

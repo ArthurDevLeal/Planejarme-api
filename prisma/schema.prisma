@@ -38,6 +38,9 @@ model User {
   tasks         Task[]
   inboxItems    InboxItem[]
   notifications Notification[]
+  folders       Folder[]
+  shareLinks    ShareLink[]
+  shareInvites  ShareInvite[]
 }
 
 model PasswordResetToken {
@@ -83,8 +86,11 @@ model Discipline {
   semesterId String?
   semester   Semester? @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
-  schedules Schedule[]
-  materials Material[]
+  schedules    Schedule[]
+  materials    Material[]
+  folders      Folder[]
+  shareLinks   ShareLink[]
+  shareInvites ShareInvite[]
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -93,14 +99,14 @@ model Discipline {
 }
 
 model Schedule {
-  id           String     @id @default(uuid())
-  dayOfWeek    Int
-  startTime    String?
-  endTime      String?
-  attendanceSince DateTime @default(dbgenerated("((CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date)")) @db.Date
-  disciplineId String
-  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  attendances ScheduleAttendance[]
+  id              String               @id @default(uuid())
+  dayOfWeek       Int
+  startTime       String?
+  endTime         String?
+  attendanceSince DateTime             @default(dbgenerated("((CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date)")) @db.Date
+  disciplineId    String
+  discipline      Discipline           @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  attendances     ScheduleAttendance[]
 }
 
 model ScheduleAttendance {
@@ -126,8 +132,77 @@ model Material {
   discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
   taskId       String?
   task         Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  folderId     String?
+  folder       Folder?     @relation(fields: [folderId], references: [id], onDelete: SetNull)
   deletedAt    DateTime?
   createdAt    DateTime    @default(now())
+
+  shareLink    ShareLink?
+  shareInvites ShareInvite[]
+}
+
+// A disciplina funciona como pasta automática: aqui ficam só as pastas criadas pelo aluno.
+// disciplineId é repetido em cada subpasta para filtrar sem percorrer a árvore.
+model Folder {
+  id           String      @id @default(uuid())
+  name         String
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId     String?
+  parent       Folder?     @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Folder[]    @relation("FolderTree")
+  disciplineId String?
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
+  deletedAt    DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  materials    Material[]
+  shareLink    ShareLink?
+  shareInvites ShareInvite[]
+
+  @@index([userId])
+  @@index([parentId])
+}
+
+// Exatamente um alvo por linha (material, pasta ou disciplina), e um link ativo por alvo.
+// O token fica legível porque o dono precisa copiar o mesmo link depois; não dá para guardar só o hash.
+model ShareLink {
+  id           String      @id @default(uuid())
+  token        String      @unique
+  expiresAt    DateTime
+  ownerId      String
+  owner        User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  materialId   String?     @unique
+  material     Material?   @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  folderId     String?     @unique
+  folder       Folder?     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  disciplineId String?     @unique
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+
+  @@index([ownerId])
+}
+
+// O destinatário é achado pelo e-mail: o convite vale também para quem ainda vai criar a conta.
+model ShareInvite {
+  id           String      @id @default(uuid())
+  email        String
+  ownerId      String
+  owner        User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  materialId   String?
+  material     Material?   @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  folderId     String?
+  folder       Folder?     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  disciplineId String?
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+
+  @@unique([email, materialId])
+  @@unique([email, folderId])
+  @@unique([email, disciplineId])
+  @@index([ownerId])
+  @@index([email])
 }
 
 model Evaluation {

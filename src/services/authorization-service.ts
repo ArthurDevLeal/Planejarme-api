@@ -3,7 +3,7 @@ import { ForbiddenException } from "../exceptions/forbidden.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
 
-type Resource = "user" | "discipline" | "task" | "schedule" | "evaluation" | "semester" | "inbox" | "notification" | "material";
+type Resource = "user" | "discipline" | "task" | "schedule" | "evaluation" | "semester" | "inbox" | "notification" | "material" | "folder";
 function assertOwner(ownerId: string, userId: string) {
   if (ownerId !== userId) throw new ForbiddenException("Você não tem permissão para acessar este registro.", ErrorCode.FORBIDDEN);
 }
@@ -37,6 +37,12 @@ export async function AuthorizeRequestService(
     const task = await prisma.task.findUnique({ where: { id: taskId }, select: { userId: true } });
     if (!task) throw new NotFoundException("Tarefa não encontrada.", ErrorCode.TASK_NOT_FOUND);
     assertOwner(task.userId, userId);
+  }
+  for (const folderId of [input.folderId, input.parentId]) {
+    if (typeof folderId !== "string" || !folderId) continue;
+    const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { userId: true } });
+    if (!folder) throw new NotFoundException("Pasta não encontrada.", ErrorCode.NOT_FOUND);
+    assertOwner(folder.userId, userId);
   }
   if (typeof params.id !== "string") return;
   let owner: string | undefined;
@@ -75,6 +81,11 @@ export async function AuthorizeRequestService(
     case "notification": {
       owner = (await prisma.notification.findUnique({ where: { id: params.id }, select: { userId: true } }))?.userId;
       code = ErrorCode.NOTIFICATION_NOT_FOUND;
+      break;
+    }
+    case "folder": {
+      owner = (await prisma.folder.findUnique({ where: { id: params.id }, select: { userId: true } }))?.userId;
+      code = ErrorCode.NOT_FOUND;
       break;
     }
     case "material": {

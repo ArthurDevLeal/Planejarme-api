@@ -26,6 +26,7 @@ resetado e passou a ter só o baseline, depois recebeu o seed.
 | `20261101120000_user_rounding_mode` | Adiciona `User.roundingMode` (`NEAREST` por padrão) para a RN09. Aditiva. |
 | `20261101180000_notification_dedupe_key` | Adiciona `Notification.dedupeKey` + índice único `(userId, dedupeKey)` para não repetir alertas (RF17). Aditiva. |
 | `20261101200000_trash_and_task_attachments` | Adiciona `Task.deletedAt`, `Material.deletedAt` e `Material.taskId` (FK, `SET NULL`) para lixeira (RN16) e anexos (RF13). Aditiva. |
+| `20261105120000_drive_folders_and_sharing` | Cria `Folder`, `ShareLink` e `ShareInvite` e adiciona `Material.folderId` (FK, `SET NULL`). Aditiva. |
 
 ## Backup do banco de dev
 

@@ -12,6 +12,8 @@ import { userRouter } from "./user-router.ts";
 import { semesterRouter } from "./semester-router.ts";
 import { cronRouter } from "./cron-router.ts";
 import { trashRouter } from "./trash-router.ts";
+import { folderRouter } from "./folder-router.ts";
+import { publicShareRouter, shareRouter } from "./share-router.ts";
 
 const mainRouter = Router();
 
@@ -26,6 +28,9 @@ mainRouter.use("/tasks", taskRouter);
 mainRouter.use("/inbox-items", inboxItemRouter);
 mainRouter.use("/notifications", notificationRouter);
 mainRouter.use("/trash", trashRouter);
+mainRouter.use("/folders", folderRouter);
+mainRouter.use("/shares", shareRouter);
+mainRouter.use("/public/shares", publicShareRouter);
 mainRouter.use("/cron", cronRouter);
 
 export { mainRouter };

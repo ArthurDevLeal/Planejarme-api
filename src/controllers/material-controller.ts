@@ -159,7 +159,8 @@ export class MaterialController {
       ? req.body.disciplineId.trim()
       : null;
     const taskId = typeof req.body.taskId === "string" && req.body.taskId.trim().length > 0 ? req.body.taskId.trim() : null;
-    await AuthorizeRequestService(userId, "material", {}, { disciplineId, taskId });
+    const folderId = typeof req.body.folderId === "string" && req.body.folderId.trim().length > 0 ? req.body.folderId.trim() : null;
+    await AuthorizeRequestService(userId, "material", {}, { disciplineId, taskId, folderId });
     const originalName = decodeOriginalName(req.file.originalname);
     const safeName = sanitizeFilename(originalName);
     const extension = originalName.includes(".") ? originalName.split(".").pop()?.toUpperCase() ?? "FILE" : "FILE";
@@ -196,6 +197,7 @@ export class MaterialController {
       userId,
       disciplineId,
       taskId,
+      folderId,
     });
 
     return sendSuccess(res, material, "Material enviado com sucesso", 201);

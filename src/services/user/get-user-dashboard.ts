@@ -7,29 +7,40 @@ export async function GetUserDashboardService(
   userId: string,
   requestedSemesterId?: string,
 ) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      course: true,
-      institution: true,
-      passingScore: true,
-      maxAbsencePct: true,
-      roundingMode: true,
-    },
-  });
+  const findSemesters = () =>
+    prisma.semester.findMany({
+      where: { userId },
+      orderBy: [{ isCurrent: "desc" }, { name: "desc" }, { createdAt: "desc" }],
+    });
+
+  const [user, foundSemesters, orphanDiscipline, orphanTask] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        course: true,
+        institution: true,
+        passingScore: true,
+        maxAbsencePct: true,
+        roundingMode: true,
+      },
+    }),
+    findSemesters(),
+    prisma.discipline.findFirst({ where: { userId, semesterId: null }, select: { id: true } }),
+    prisma.task.findFirst({ where: { userId, semesterId: null }, select: { id: true } }),
+  ]);
 
   if (!user) return null;
 
-  await EnsureUserHasCurrentSemester(userId);
-
-  const semesters = await prisma.semester.findMany({
-    where: { userId },
-    orderBy: [{ isCurrent: "desc" }, { name: "desc" }, { createdAt: "desc" }],
-  });
+  // Esta rota abre toda tela do painel: só escreve no banco quando há o que acertar.
+  let semesters = foundSemesters;
+  if (!semesters.length || orphanDiscipline || orphanTask) {
+    await EnsureUserHasCurrentSemester(userId);
+    semesters = await findSemesters();
+  }
 
   const activeSemester =
     (requestedSemesterId

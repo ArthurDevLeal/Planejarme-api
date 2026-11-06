@@ -66,7 +66,11 @@ export async function GetUserDashboardService(
               }
             : {}),
         },
-        include: { discipline: { select: { id: true, name: true } } },
+        omit: { description: true },
+        include: {
+          discipline: { select: { id: true, name: true } },
+          _count: { select: { materials: { where: { deletedAt: null } } } },
+        },
         orderBy: { dueDate: "asc" },
       }),
       prisma.inboxItem.findMany({

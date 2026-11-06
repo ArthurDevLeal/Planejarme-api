@@ -10,7 +10,14 @@ const CreateTaskSchema = z.object({
   semesterId: z.string().min(1).optional(),
 });
 
-const UpdateTaskSchema = CreateTaskSchema.omit({ userId: true }).partial();
+// O documento do editor volta para o cliente como veio; o limite segura o tamanho, as imagens ficam em Material.
+const TaskDescriptionSchema = z
+  .looseObject({ type: z.literal("doc") })
+  .refine((doc) => JSON.stringify(doc).length <= 200_000, "A descrição está grande demais.");
+
+const UpdateTaskSchema = CreateTaskSchema.omit({ userId: true })
+  .extend({ description: TaskDescriptionSchema.nullable() })
+  .partial();
 const TaskIdSchema = z.object({ id: z.string().min(1) });
 const UserIdSchema = z.object({ userId: z.string().min(1) });
 const TaskStatusSchema = z.object({ status: z.string().min(1).max(30) });

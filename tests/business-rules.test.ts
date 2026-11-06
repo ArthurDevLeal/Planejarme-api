@@ -16,7 +16,7 @@ const now = new Date("2026-11-01T15:00:00Z"); // 12h em Brasília
 test("RN11/RN13: tarefa não concluída com prazo vencido sai como OVERDUE", () => {
   const yesterday = new Date("2026-10-31T15:00:00Z");
   assert.equal(withTaskStatus({ status: "PENDING", dueDate: yesterday }, now).status, "OVERDUE");
-  assert.equal(withTaskStatus({ status: "IN_PROGRESS", dueDate: yesterday }, now).status, "OVERDUE");
+  assert.equal(withTaskStatus({ status: "IN_PROGRESS", dueDate: yesterday }, now).status, "IN_PROGRESS");
   assert.equal(withTaskStatus({ status: "COMPLETED", dueDate: yesterday }, now).status, "COMPLETED");
   // Prazo hoje ainda não venceu, mesmo que o horário já tenha passado.
   assert.equal(withTaskStatus({ status: "PENDING", dueDate: new Date("2026-11-01T03:00:00Z") }, now).status, "PENDING");

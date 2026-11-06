@@ -222,6 +222,8 @@ model Evaluation {
 model Task {
   id          String    @id @default(uuid())
   title       String
+  // Documento do editor (JSON do Tiptap). Fica fora das listas; só o detalhe da tarefa traz.
+  description Json?
   dueDate     DateTime
   priority    String    @default("MEDIUM")
   status      String    @default("PENDING")

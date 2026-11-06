@@ -1,3 +1,4 @@
+import { Prisma } from "../../generated/prisma/client.ts";
 import { prisma } from "../../lib/prisma.ts";
 import { CreateTaskSchemaType, UpdateTaskSchemaType } from "../schemas/task-schema.ts";
 
@@ -37,6 +38,7 @@ export async function FindTaskByIdService(id: string) {
 export async function FindTasksByUserService(userId: string, semesterId?: string) {
   const tasks = await prisma.task.findMany({
     where: { userId, deletedAt: null, ...(semesterId ? { semesterId } : {}) },
+    omit: { description: true },
     include: { discipline: { select: { id: true, name: true } } },
     orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
   });
@@ -46,6 +48,7 @@ export async function FindTasksByUserService(userId: string, semesterId?: string
 export async function FindPendingTasksByUserService(userId: string, semesterId?: string) {
   const tasks = await prisma.task.findMany({
     where: { userId, deletedAt: null, status: { not: "COMPLETED" }, ...(semesterId ? { semesterId } : {}) },
+    omit: { description: true },
     include: { discipline: { select: { id: true, name: true } } },
     orderBy: { dueDate: "asc" },
   });
@@ -53,8 +56,10 @@ export async function FindPendingTasksByUserService(userId: string, semesterId?:
 }
 
 export async function UpdateTaskService(id: string, data: UpdateTaskSchemaType) {
+  const { description, ...fields } = data;
   return withTaskStatus(await prisma.task.update({ where: { id }, data: {
-    ...data,
+    ...fields,
+    ...(description !== undefined ? { description: description === null ? Prisma.DbNull : (description as Prisma.InputJsonValue) } : {}),
     ...(data.status !== undefined
       ? { status: storedTaskStatus(data.status), completedAt: data.status === "COMPLETED" ? new Date() : null }
       : {}),

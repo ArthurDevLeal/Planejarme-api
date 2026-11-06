@@ -1,9 +1,12 @@
 import { brasiliaDate, courseWindow, scheduleAbsences } from "../../utils/academic-date.ts";
 import { prisma } from "../../../lib/prisma.ts";
+import type { Prisma } from "../../../generated/prisma/client.ts";
 import { EnsureUserHasCurrentSemester } from "../semester-service.ts";
 import { withTaskStatus } from "../../utils/task-status.ts";
+import type { DisciplineInclude } from "../../schemas/user-schema.ts";
 
-export async function GetUserDashboardService(
+/** Base de toda tela: quem é o usuário, que dia é e qual semestre está em uso. */
+export async function GetUserContextService(
   userId: string,
   requestedSemesterId?: string,
 ) {
@@ -13,7 +16,7 @@ export async function GetUserDashboardService(
       orderBy: [{ isCurrent: "desc" }, { name: "desc" }, { createdAt: "desc" }],
     });
 
-  const [user, foundSemesters, orphanDiscipline, orphanTask] = await Promise.all([
+  const [user, foundSemesters, orphanDiscipline, orphanTask, disciplineCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -31,6 +34,7 @@ export async function GetUserDashboardService(
     findSemesters(),
     prisma.discipline.findFirst({ where: { userId, semesterId: null }, select: { id: true } }),
     prisma.task.findFirst({ where: { userId, semesterId: null }, select: { id: true } }),
+    prisma.discipline.count({ where: { userId } }),
   ]);
 
   if (!user) return null;
@@ -47,82 +51,128 @@ export async function GetUserDashboardService(
       ? semesters.find((s) => s.id === requestedSemesterId)
       : semesters.find((s) => s.isCurrent)) ?? semesters[0];
 
-  const semesterFilter = activeSemester
-    ? { semesterId: activeSemester.id }
-    : {};
+  return {
+    user,
+    today: brasiliaDate(),
+    currentSemesterId: activeSemester?.id ?? null,
+    currentSemesterName: activeSemester?.name ?? null,
+    disciplineCount,
+    semesters: semesters.map((s) => ({
+      id: s.id,
+      name: s.name,
+      isCurrent: s.isCurrent,
+      startDate: s.startDate ? s.startDate.toISOString().slice(0, 10) : null,
+      endDate: s.endDate ? s.endDate.toISOString().slice(0, 10) : null,
+    })),
+  };
+}
 
-  const [disciplinesData, tasksData, inboxItems, notifications] =
-    await Promise.all([
-      prisma.discipline.findMany({
-        where: { userId, ...semesterFilter },
-        include: {
-          semester: true,
-          schedules: { include: { attendances: true } },
-          materials: { where: { deletedAt: null } },
-          evaluations: true,
-        },
-        orderBy: { name: "asc" },
-      }),
-      prisma.task.findMany({
-        where: {
-          userId,
-          deletedAt: null,
-          ...(activeSemester
-            ? {
-                OR: [
-                  { semesterId: activeSemester.id },
-                  { discipline: { semesterId: activeSemester.id } },
-                  { semesterId: null, disciplineId: null },
-                ],
-              }
-            : {}),
-        },
-        omit: { description: true },
-        include: {
-          discipline: { select: { id: true, name: true } },
-          _count: { select: { materials: { where: { deletedAt: null } } } },
-        },
-        orderBy: { dueDate: "asc" },
-      }),
-      prisma.inboxItem.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.notification.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-      }),
-    ]);
+type FullDiscipline = Prisma.DisciplineGetPayload<{
+  include: {
+    semester: true;
+    schedules: { include: { attendances: true } };
+    materials: true;
+    evaluations: true;
+  };
+}>;
+type DisciplineRow = Omit<FullDiscipline, "semester" | "schedules" | "materials" | "evaluations"> &
+  Partial<Pick<FullDiscipline, "semester" | "schedules" | "materials" | "evaluations">>;
+
+/**
+ * Só o que a tela pede em `include`. `schedules` é o que permite somar as faltas de horário:
+ * sem ele, `absences` traz apenas as faltas lançadas à mão.
+ */
+export async function GetUserDisciplinesService(
+  userId: string,
+  semesterId: string | undefined,
+  include: DisciplineInclude[] = [],
+) {
+  const withSchedules = include.includes("schedules") || include.includes("attendances");
+  const rows = (await prisma.discipline.findMany({
+    where: { userId, ...(semesterId ? { semesterId } : {}) },
+    include: {
+      semester: withSchedules,
+      schedules: withSchedules ? { include: { attendances: true } } : false,
+      materials: include.includes("materials") ? { where: { deletedAt: null } } : false,
+      evaluations: include.includes("evaluations"),
+    },
+    orderBy: { name: "asc" },
+  })) as DisciplineRow[];
 
   const today = brasiliaDate();
-  const disciplines = disciplinesData.map((discipline) => {
-    const window = courseWindow(discipline.semester);
-    const scheduleAbsencesTotal = discipline.schedules.reduce(
+  return rows.map(({ semester, schedules, ...discipline }) => {
+    if (!schedules) {
+      return { ...discipline, manualAbsences: undefined, scheduleAbsences: undefined, schedules: undefined };
+    }
+    const window = courseWindow(semester);
+    const scheduleAbsencesTotal = schedules.reduce(
       (total, schedule) => total + scheduleAbsences(schedule, today, window),
       0,
-    );
-    const totalAbsences = Math.min(
-      discipline.workloadHours,
-      discipline.absences + scheduleAbsencesTotal,
     );
     return {
       ...discipline,
       manualAbsences: discipline.absences,
       scheduleAbsences: scheduleAbsencesTotal,
-      absences: totalAbsences,
-      schedules: discipline.schedules.map(({ attendances, ...schedule }) => ({
-        ...schedule,
-        attendances: attendances.map((item) => ({
-          ...item,
-          date: item.date.toISOString().slice(0, 10),
-        })),
-        attended: attendances.some(
-          (item) =>
-            item.attended && item.date.toISOString().slice(0, 10) === today,
-        ),
-      })),
+      absences: Math.min(discipline.workloadHours, discipline.absences + scheduleAbsencesTotal),
+      schedules: schedules.map(({ attendances, ...schedule }) => {
+        const days = attendances.map((item) => ({ ...item, date: item.date.toISOString().slice(0, 10) }));
+        return {
+          ...schedule,
+          ...(include.includes("attendances") ? { attendances: days } : {}),
+          attended: days.some((item) => item.attended && item.date === today),
+        };
+      }),
     };
   });
+}
+
+export async function GetUserTasksService(userId: string, semesterId?: string) {
+  const tasks = await prisma.task.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+      ...(semesterId
+        ? {
+            OR: [
+              { semesterId },
+              { discipline: { semesterId } },
+              { semesterId: null, disciplineId: null },
+            ],
+          }
+        : {}),
+    },
+    omit: { description: true },
+    include: {
+      discipline: { select: { id: true, name: true } },
+      _count: { select: { materials: { where: { deletedAt: null } } } },
+    },
+    orderBy: { dueDate: "asc" },
+  });
+  return tasks.map((task) => withTaskStatus(task));
+}
+
+export async function GetUserDashboardService(
+  userId: string,
+  requestedSemesterId?: string,
+) {
+  const context = await GetUserContextService(userId, requestedSemesterId);
+  if (!context) return null;
+  const { disciplineCount: _, ...rest } = context;
+  const semesterId = context.currentSemesterId ?? undefined;
+
+  const [disciplines, tasksData, inboxItems, notifications] = await Promise.all([
+    GetUserDisciplinesService(userId, semesterId, ["schedules", "attendances", "materials", "evaluations"]),
+    GetUserTasksService(userId, semesterId),
+    prisma.inboxItem.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
   const totalWorkloadHours = disciplines.reduce(
     (total, discipline) => total + discipline.workloadHours,
     0,
@@ -133,29 +183,9 @@ export async function GetUserDashboardService(
   );
 
   return {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      course: user.course,
-      institution: user.institution,
-      passingScore: user.passingScore,
-      maxAbsencePct: user.maxAbsencePct,
-      roundingMode: user.roundingMode,
-    },
-    today,
-    currentSemesterId: activeSemester?.id ?? null,
-    currentSemesterName: activeSemester?.name ?? null,
-    semesters: semesters.map((s) => ({
-      id: s.id,
-      name: s.name,
-      isCurrent: s.isCurrent,
-      startDate: s.startDate ? s.startDate.toISOString().slice(0, 10) : null,
-      endDate: s.endDate ? s.endDate.toISOString().slice(0, 10) : null,
-    })),
+    ...rest,
     disciplines,
-    tasks: tasksData.map((task) => withTaskStatus(task)),
+    tasks: tasksData,
     inboxItems,
     notifications,
     summary: {
@@ -163,15 +193,15 @@ export async function GetUserDashboardService(
       totalWorkloadHours,
       totalAbsences,
       scheduleCount: disciplines.reduce(
-        (total, discipline) => total + discipline.schedules.length,
+        (total, discipline) => total + (discipline.schedules?.length ?? 0),
         0,
       ),
       materialCount: disciplines.reduce(
-        (total, discipline) => total + discipline.materials.length,
+        (total, discipline) => total + (discipline.materials?.length ?? 0),
         0,
       ),
       evaluationCount: disciplines.reduce(
-        (total, discipline) => total + discipline.evaluations.length,
+        (total, discipline) => total + (discipline.evaluations?.length ?? 0),
         0,
       ),
       pendingTaskCount: tasksData.filter((task) => task.status !== "COMPLETED")

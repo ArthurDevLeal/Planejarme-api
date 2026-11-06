@@ -70,3 +70,15 @@ export {
   UserIdSchema,
   UserIdSchemaType,
 };
+
+const disciplineIncludes = ["schedules", "attendances", "evaluations", "materials"] as const;
+export type DisciplineInclude = (typeof disciplineIncludes)[number];
+
+export const ScreenDataQuerySchema = z.object({
+  semesterId: z.string().min(1).optional(),
+  include: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value.split(",") : []))
+    .pipe(z.array(z.enum(disciplineIncludes))),
+});

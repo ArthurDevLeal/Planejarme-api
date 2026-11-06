@@ -9,6 +9,7 @@ import {
   CreateUserSchema,
   DeleteUserSchema,
   FindUserByIdSchema,
+  ScreenDataQuerySchema,
   UpdateUserSchema,
   UserIdSchema,
 } from "../schemas/user-schema.ts";
@@ -16,7 +17,12 @@ import { CreateUserService } from "../services/user/create-user.ts";
 import { DeleteUserService } from "../services/user/delete-user.ts";
 import { ExportUserDataService } from "../services/user/export-user-data.ts";
 import { FindUserByIdService } from "../services/user/find-user-by-id.ts";
-import { GetUserDashboardService } from "../services/user/get-user-dashboard.ts";
+import {
+  GetUserContextService,
+  GetUserDashboardService,
+  GetUserDisciplinesService,
+  GetUserTasksService,
+} from "../services/user/get-user-dashboard.ts";
 import { ChangePasswordService } from "../services/user/change-password.ts";
 import { UpdateUserService } from "../services/user/update-user.ts";
 import { sendSuccess } from "../utils/api-response.ts";
@@ -26,7 +32,25 @@ function withoutPasswordHash<T extends { passwordHash: string }>({ passwordHash:
   return user;
 }
 
+function screenQuery(req: Request) {
+  const result = ScreenDataQuerySchema.safeParse(req.query);
+  if (!result.success) throw new ValidationException("Os filtros enviados são inválidos. Atualize a página e tente novamente.", result);
+  return result.data;
+}
+
 export class UserController {
+  GetCurrentUserContext = ErrorHandler(async (req: Request, res: Response) => {
+    const context = await GetUserContextService(req.userId);
+    if (!context) throw new NotFoundException("Usuário não encontrado.", ErrorCode.USER_NOT_FOUND);
+    return sendSuccess(res, context);
+  });
+  GetCurrentUserDisciplines = ErrorHandler(async (req: Request, res: Response) => {
+    const { semesterId, include } = screenQuery(req);
+    return sendSuccess(res, await GetUserDisciplinesService(req.userId, semesterId, include));
+  });
+  GetCurrentUserTasks = ErrorHandler(async (req: Request, res: Response) => {
+    return sendSuccess(res, await GetUserTasksService(req.userId, screenQuery(req).semesterId));
+  });
   GetCurrentUserDashboard = ErrorHandler(async (req: Request, res: Response) => {
     const semesterId = typeof req.query.semesterId === "string" ? req.query.semesterId : undefined;
     const dashboard = await GetUserDashboardService(req.userId, semesterId);

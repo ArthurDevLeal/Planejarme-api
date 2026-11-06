@@ -9,6 +9,9 @@ const controller = new UserController();
 userRouter.post("/", RateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), controller.CreateUser);
 userRouter.use(AuthMiddleware);
 userRouter.get("/me/dashboard", controller.GetCurrentUserDashboard);
+userRouter.get("/me/context", controller.GetCurrentUserContext);
+userRouter.get("/me/disciplines", controller.GetCurrentUserDisciplines);
+userRouter.get("/me/tasks", controller.GetCurrentUserTasks);
 userRouter.patch("/me/password", controller.UpdatePassword);
 userRouter.get("/me/export", controller.ExportCurrentUserData);
 

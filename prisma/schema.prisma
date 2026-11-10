@@ -79,6 +79,9 @@ model Discipline {
   workloadHours Int
   absences      Int     @default(0)
   gradingSystem String  @default("ARITHMETIC")
+  // Escolhas visuais do aluno: índice na paleta de disciplinas e nome do ícone. Nulos usam a cor pela ordem e o ícone padrão.
+  color         Int?
+  icon          String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

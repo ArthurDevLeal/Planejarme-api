@@ -13,6 +13,8 @@ const BaseDisciplineSchema = z.object({
   workloadHours: z.coerce.number().int().positive(),
   absences: z.coerce.number().int().nonnegative().optional(),
   gradingSystem: z.string().min(1).max(50).optional(),
+  color: z.number().int().min(0).max(5).optional().nullable(),
+  icon: z.string().regex(/^[a-z-]{1,40}$/).optional().nullable(),
   userId: z.string().min(1),
   semesterId: z.string().min(1).optional(),
 });

@@ -226,6 +226,8 @@ export async function CopyDisciplinesService(
           classroom: discipline.classroom,
           workloadHours: discipline.workloadHours,
           gradingSystem: discipline.gradingSystem,
+          color: discipline.color,
+          icon: discipline.icon,
           absences: 0,
           userId,
           semesterId: data.targetSemesterId,

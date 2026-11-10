@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { prisma } from "../../lib/prisma.ts";
-import { adminEmails, BillingInterval, COMMISSION_HOLD_DAYS, commissionCents, ENTITLED_STATUSES, PRO_PRICES, webUrl } from "../config/billing.ts";
+import { adminEmails, BillingInterval, COMMISSION_HOLD_DAYS, commissionCents, commissionPct, ENTITLED_STATUSES, PRO_PRICES, webUrl } from "../config/billing.ts";
 import { PLANS } from "../config/plans.ts";
 import { HttpException, ErrorCode } from "../exceptions/root.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
@@ -8,6 +8,15 @@ import { stripe } from "../lib/stripe.ts";
 
 const DAY_MS = 86_400_000;
 const settings = `${webUrl()}/dashboard/configuracoes?secao=plano`;
+
+/** Preços, limites e regras de afiliado, sem login: é o que a landing mostra. */
+export function GetPublicPlansService() {
+  return {
+    prices: { monthlyCents: PRO_PRICES.monthly.cents, yearlyCents: PRO_PRICES.yearly.cents },
+    limits: PLANS,
+    affiliate: { commissionPct: commissionPct(), holdDays: COMMISSION_HOLD_DAYS },
+  };
+}
 
 export async function GetBillingService(userId: string) {
   const user = await prisma.user.findUnique({

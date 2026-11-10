@@ -12,6 +12,8 @@ import { userRouter } from "./user-router.ts";
 import { semesterRouter } from "./semester-router.ts";
 import { adminRouter, affiliateRouter, billingRouter } from "./billing-router.ts";
 import { cronRouter } from "./cron-router.ts";
+import { GetPublicPlansService } from "../services/billing-service.ts";
+import { sendSuccess } from "../utils/api-response.ts";
 import { trashRouter } from "./trash-router.ts";
 import { folderRouter } from "./folder-router.ts";
 import { publicShareRouter, shareRouter } from "./share-router.ts";
@@ -32,6 +34,8 @@ mainRouter.use("/trash", trashRouter);
 mainRouter.use("/folders", folderRouter);
 mainRouter.use("/shares", shareRouter);
 mainRouter.use("/public/shares", publicShareRouter);
+// Sem login: a landing lê preços e limites daqui para não repetir números.
+mainRouter.get("/public/plans", (_req, res) => sendSuccess(res, GetPublicPlansService()));
 mainRouter.use("/billing", billingRouter);
 mainRouter.use("/affiliates", affiliateRouter);
 mainRouter.use("/admin", adminRouter);

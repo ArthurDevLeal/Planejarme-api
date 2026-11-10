@@ -64,6 +64,16 @@ test("webhook: assinatura inválida ou ausente é recusada antes de tocar no ban
   assert.equal(missing.status, 400);
 });
 
+test("planos públicos: preços, limites e regras de afiliado sem login", async () => {
+  const response = await fetch(`${baseUrl}/public/plans`);
+  assert.equal(response.status, 200);
+  const { data } = await response.json();
+  assert.deepEqual(data.prices, { monthlyCents: 1490, yearlyCents: 11900 });
+  assert.equal(data.limits.FREE.maxDisciplinesPerSemester, 5);
+  assert.equal(data.limits.PRO.maxDisciplinesPerSemester, null);
+  assert.deepEqual(data.affiliate, { commissionPct: 30, holdDays: 30 });
+});
+
 test("rotas de cobrança, afiliados e admin exigem login", async () => {
   for (const [method, path] of [["GET", "/billing/me"], ["POST", "/billing/checkout"], ["POST", "/billing/portal"], ["GET", "/affiliates/me"], ["GET", "/admin/affiliates"]]) {
     assert.equal((await fetch(baseUrl + path, { method })).status, 401, path);

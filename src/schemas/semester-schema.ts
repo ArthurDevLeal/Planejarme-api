@@ -37,7 +37,6 @@ const UpdateSemesterSchema = z
 
 const CopyDisciplinesSchema = z.object({
   targetSemesterId: z.string().min(1),
-  /** Ausente copia todas as disciplinas do semestre de origem. */
   disciplineIds: z
     .array(z.string().min(1))
     .min(1, "Selecione ao menos uma disciplina para copiar.")

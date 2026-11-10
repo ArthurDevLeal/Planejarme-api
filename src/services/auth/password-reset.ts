@@ -12,7 +12,6 @@ function hashToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-/** RF02: gera um link de uso único. E-mail inexistente não gera erro, para não revelar contas. */
 export async function RequestPasswordResetService(email: string) {
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true, email: true } });
   if (!user) return;
@@ -29,7 +28,6 @@ export async function RequestPasswordResetService(email: string) {
   const link = `${webUrl}/auth/reset-password?token=${token}`;
   const firstName = user.name.split(" ")[0];
 
-  // Falha de envio não muda a resposta: um 500 só para e-mails existentes revelaria a conta.
   await SendEmail({
     to: user.email,
     subject: "Redefinir sua senha do Planejar.me",
@@ -47,7 +45,6 @@ export async function ResetPasswordService(token: string, password: string) {
     );
   }
 
-  // Sessões JWT já emitidas continuam válidas até expirar (não há revogação de tokens).
   await prisma.$transaction([
     prisma.user.update({ where: { id: record.userId }, data: { passwordHash: await hash(password, 8) } }),
     prisma.passwordResetToken.deleteMany({ where: { userId: record.userId } }),

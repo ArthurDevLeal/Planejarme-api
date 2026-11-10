@@ -28,7 +28,6 @@ function sameValue(a: string, b: string) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
-/** Navegação do navegador (não fetch): erros viram redirect para o web, nunca JSON. */
 export class OAuthController {
   Start = (req: Request, res: Response) => {
     const provider = String(req.params.provider);

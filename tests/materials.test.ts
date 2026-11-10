@@ -8,7 +8,6 @@ import { ErrorMiddleware } from "../src/middlewares/errors.ts";
 
 let server: Server;
 let baseUrl = "";
-// Usam o banco (usuário fixo do banco de dev) e o Supabase Storage: só rodam com RUN_DB_TESTS=1.
 const dbTest = { skip: process.env.RUN_DB_TESTS !== "1" };
 const TEST_USER_ID = "27800be8-7b37-4287-8a0a-2e6587fa220f";
 const authHeader = () => ({
@@ -66,30 +65,25 @@ test("POST /materials ignora storagePath e userId vindos do corpo", dbTest, asyn
   const resBody = await response.json();
   assert.equal(resBody.success, true);
   assert.equal(resBody.data.title, testPayload.title);
-  // storagePath só é definido pelo upload; aceitar do corpo permitiria assinar URL de arquivo alheio.
   assert.equal(resBody.data.storagePath, null);
   assert.equal(resBody.data.userId, TEST_USER_ID);
   assert.equal(resBody.data.fileSizeMb, 1.5);
 
   const materialId = resBody.data.id;
 
-  // GET /materials/:id
   const getRes = await fetch(`${baseUrl}/materials/${materialId}`, { headers: authHeader() });
   assert.equal(getRes.status, 200);
   const getBody = await getRes.json();
   assert.equal(getBody.data.id, materialId);
 
-  // GET /materials/user/:userId
   const listRes = await fetch(`${baseUrl}/materials/user/${TEST_USER_ID}`, { headers: authHeader() });
   assert.equal(listRes.status, 200);
   const listBody = await listRes.json();
   assert.ok(listBody.data.some((m: { id: string }) => m.id === materialId));
 
-  // DELETE /materials/:id
   const delRes = await fetch(`${baseUrl}/materials/${materialId}`, { method: "DELETE", headers: authHeader() });
   assert.equal(delRes.status, 200);
 
-  // RN16: excluir manda para a lixeira (deletedAt) em vez de apagar
   const checkDel = await prisma.material.findUnique({ where: { id: materialId } });
   assert.ok(checkDel?.deletedAt);
   const forever = await fetch(`${baseUrl}/trash/material/${materialId}`, { method: "DELETE", headers: authHeader() });
@@ -143,7 +137,6 @@ test("POST /materials com Bearer token associa material ao req.userId autenticad
 
   const materialId = body.data.id;
 
-  // GET /materials/user/me com token retorna o material
   const meRes = await fetch(`${baseUrl}/materials/user/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -151,7 +144,6 @@ test("POST /materials com Bearer token associa material ao req.userId autenticad
   const meBody = await meRes.json();
   assert.ok(meBody.data.some((m: { id: string }) => m.id === materialId));
 
-  // PUT /materials/:id para classificar (vincular disciplina)
   const updateRes = await fetch(`${baseUrl}/materials/${materialId}`, {
     method: "PUT",
     headers: {
@@ -164,7 +156,6 @@ test("POST /materials com Bearer token associa material ao req.userId autenticad
   const updateBody = await updateRes.json();
   assert.equal(updateBody.data.title, "Material Classificado");
 
-  // Cleanup
   await prisma.material.delete({ where: { id: materialId } }).catch(() => {});
 });
 
@@ -195,7 +186,6 @@ test("POST /materials/upload com arquivo multipart real, acentos e espaços", db
 
   const materialId = uploadBody.data.id;
 
-  // GET /materials/:id/download-url retorna signed URL do Supabase Storage
   const downloadRes = await fetch(`${baseUrl}/materials/${materialId}/download-url`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -205,7 +195,6 @@ test("POST /materials/upload com arquivo multipart real, acentos e espaços", db
   assert.ok(downloadBody.data.downloadUrl);
   assert.ok(downloadBody.data.downloadUrl.startsWith("http"));
 
-  // GET /materials/user/me lista o material na caixa de entrada
   const listRes = await fetch(`${baseUrl}/materials/user/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -215,22 +204,18 @@ test("POST /materials/upload com arquivo multipart real, acentos e espaços", db
   assert.ok(found);
   assert.equal(found.disciplineId, null);
 
-  // DELETE /materials/:id remove do banco e do storage
   const delRes = await fetch(`${baseUrl}/materials/${materialId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
   assert.equal(delRes.status, 200);
 
-  // Verificação no banco: foi para a lixeira (RN16)
   const checkDb = await prisma.material.findUnique({ where: { id: materialId } });
   assert.ok(checkDb?.deletedAt);
 
-  // GET /materials/:id após exclusão retorna 404
   const notFoundRes = await fetch(`${baseUrl}/materials/${materialId}`, { headers: authHeader() });
   assert.equal(notFoundRes.status, 404);
 
-  // Exclusão definitiva apaga o registro e o arquivo no Storage
   const forever = await fetch(`${baseUrl}/trash/material/${materialId}`, { method: "DELETE", headers: authHeader() });
   assert.equal(forever.status, 200);
   assert.equal(await prisma.material.findUnique({ where: { id: materialId } }), null);

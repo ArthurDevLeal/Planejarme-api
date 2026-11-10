@@ -44,8 +44,7 @@ test("cron exige o CRON_SECRET e fica fechado sem ele", async () => {
 });
 
 test("RF17: avisa tarefas de hoje/amanhã e provas em até 2 dias, uma vez só", { skip: process.env.RUN_DB_TESTS !== "1" }, async () => {
-  // Datas em 2099 para não gerar avisos de verdade para quem já está no banco.
-  const now = new Date("2099-03-10T13:00:00Z"); // 10h em Brasília
+  const now = new Date("2099-03-10T13:00:00Z");
   const at = (day: number) => new Date(`2099-03-${String(day).padStart(2, "0")}T15:00:00Z`);
   const user = await prisma.user.create({
     data: { name: "Avisos temporário", email: `notify-${randomUUID()}@example.invalid`, passwordHash: "x" },
@@ -80,12 +79,10 @@ test("RF17: avisa tarefas de hoje/amanhã e provas em até 2 dias, uma vez só",
       ],
     );
 
-    // Rodar de novo (ou no dia seguinte) não repete o mesmo aviso.
     assert.equal((await GenerateDueNotificationsService(now)).created, 0);
     await GenerateDueNotificationsService(new Date("2099-03-11T13:00:00Z"));
     assert.equal(await prisma.notification.count({ where: { userId: user.id } }), 3);
 
-    // Marcar todas como lidas pela API.
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, { expiresIn: "5m" });
     const response = await fetch(`${baseUrl}/notifications/user/me/read-all`, {
       method: "PATCH",

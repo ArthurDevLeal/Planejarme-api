@@ -10,7 +10,6 @@ const CreateTaskSchema = z.object({
   semesterId: z.string().min(1).optional(),
 });
 
-// O documento do editor volta para o cliente como veio; o limite segura o tamanho, as imagens ficam em Material.
 const TaskDescriptionSchema = z
   .looseObject({ type: z.literal("doc") })
   .refine((doc) => JSON.stringify(doc).length <= 200_000, "A descrição está grande demais.");

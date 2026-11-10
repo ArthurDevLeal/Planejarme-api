@@ -89,7 +89,6 @@ export async function AuthorizeRequestService(
       break;
     }
     case "material": {
-      // Materiais antigos podem não ter userId; o dono passa a ser o da disciplina.
       const material = await prisma.material.findUnique({ where: { id: params.id }, select: { userId: true, discipline: { select: { userId: true } } } });
       owner = material?.userId ?? material?.discipline?.userId;
       code = ErrorCode.MATERIAL_NOT_FOUND;

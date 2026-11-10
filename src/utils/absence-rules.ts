@@ -1,24 +1,3 @@
-/**
- * Regras de Negócio — Módulo de Frequência e Presença
- *
- * RN01 — Limite Máximo de Faltas:
- * O limite de faltas é calculado com base na percentagem mínima exigida
- * (padrão: 25% de faltas sobre a carga horária total), salvo se configurado customizadamente.
- *
- * RN02 — Níveis de Alerta (Status de Risco):
- * 🟢 Verde (Normal): Faltas acumuladas abaixo de 60% do limite.
- * 🟡 Amarelo (Atenção): Faltas acumuladas entre 60% e 89% do limite.
- * 🔴 Vermelho (Crítico): Faltas acumuladas em 90% ou mais do limite (ou aluno reprovado por falta).
- *
- * RN03 — Incremento e Decremento de Faltas:
- * O acionamento de "Faltei" registra 1 falta na disciplina referente à data/hora atual.
- * O sistema deve permitir a reversão (desfazer falta) até o final do período letivo corrente.
- *
- * RN04 — Trava de Carga Horária Excedida:
- * O número acumulado de faltas registradas em uma disciplina não pode ultrapassar a sua
- * Carga Horária Total em horas/aulas.
- */
-
 export type AbsenceRiskLevel = "normal" | "attention" | "critical";
 
 export function calculateAbsenceLimit(workloadHours: number, maxAbsencePct = 25): number {

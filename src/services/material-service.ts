@@ -6,7 +6,6 @@ import { CreateMaterialSchemaType, UpdateMaterialSchemaType } from "../schemas/m
 // storagePath e userId vêm só do servidor (upload e token), nunca do corpo da requisição.
 export async function CreateMaterialService(data: CreateMaterialSchemaType & { userId: string; storagePath?: string }) {
   const folder = data.folderId ? await prisma.folder.findFirst({ where: { id: data.folderId, deletedAt: null }, select: { id: true, disciplineId: true } }) : null;
-  // Anexo de tarefa sem disciplina informada fica na disciplina da tarefa (e não cai na caixa de entrada).
   let disciplineId = folder ? folder.disciplineId : data.disciplineId;
   if (data.taskId && disciplineId == null) {
     disciplineId = (await prisma.task.findUnique({ where: { id: data.taskId }, select: { disciplineId: true } }))?.disciplineId ?? null;
@@ -88,7 +87,6 @@ export function FindMaterialsByUserService(userId: string, semesterId?: string) 
 }
 
 export async function UpdateMaterialService(id: string, data: UpdateMaterialSchemaType) {
-  // Dentro de uma pasta, a disciplina é sempre a da pasta. Escolher só a disciplina tira o arquivo da pasta.
   let disciplineId = data.disciplineId;
   let folderId = data.folderId;
   if (data.folderId) {
@@ -118,7 +116,6 @@ export async function UpdateMaterialService(id: string, data: UpdateMaterialSche
   });
 }
 
-/** RN16: vai para a lixeira; o arquivo no Storage só sai na exclusão definitiva. O compartilhamento acaba aqui. */
 export async function DeleteMaterialService(id: string) {
   const [material] = await prisma.$transaction([
     prisma.material.update({ where: { id }, data: { deletedAt: new Date() } }),
@@ -128,7 +125,6 @@ export async function DeleteMaterialService(id: string) {
   return material;
 }
 
-/** RF13: anexos de uma tarefa. */
 export function FindMaterialsByTaskService(taskId: string) {
   return prisma.material.findMany({
     where: { taskId, deletedAt: null },

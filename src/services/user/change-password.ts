@@ -4,10 +4,6 @@ import { BadRequestsException } from "../../exceptions/bad-requests.ts";
 import { ErrorCode } from "../../exceptions/root.ts";
 import { NotFoundException } from "../../exceptions/not-found.ts";
 
-/**
- * Troca a senha do próprio usuário exigindo a senha atual.
- * A sessão já emitida continua válida: não há revogação de tokens.
- */
 export async function ChangePasswordService(
   userId: string,
   currentPassword: string,

@@ -73,7 +73,6 @@ export function CompleteTaskService(id: string) {
   });
 }
 
-/** RN16: vai para a lixeira; a exclusão definitiva fica em trash-service. */
 export function DeleteTaskService(id: string) {
   return prisma.task.update({ where: { id }, data: { deletedAt: new Date() } });
 }

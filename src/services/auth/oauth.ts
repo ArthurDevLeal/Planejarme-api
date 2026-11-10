@@ -21,7 +21,6 @@ const PROVIDERS = {
 
 export type OAuthProfile = { email: string; name: string };
 
-/** Erro com código curto que vai para o web em `#error=`. */
 export class OAuthError extends Error {
   constructor(public code: "unavailable" | "denied" | "state" | "email" | "failed", detail?: string) {
     super(detail ?? code);
@@ -62,7 +61,6 @@ async function getJson(url: string, init: RequestInit) {
   return response.json() as Promise<Record<string, unknown>>;
 }
 
-/** Troca o código pelo token do provedor e devolve só um e-mail verificado; sem ele não há login. */
 export async function FetchOAuthProfileService(provider: OAuthProvider, code: string): Promise<OAuthProfile> {
   const { clientId, clientSecret } = credentials(provider);
   const token = await getJson(PROVIDERS[provider].tokenUrl, {
@@ -99,10 +97,6 @@ export async function FetchOAuthProfileService(provider: OAuthProvider, code: st
   return { email: primary.email, name };
 }
 
-/**
- * Liga pelo e-mail verificado: quem já tem conta entra nela; senão cria uma.
- * Conta criada aqui recebe senha aleatória; para usar senha, basta "Esqueci minha senha".
- */
 export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile) {
   const existing = await prisma.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },

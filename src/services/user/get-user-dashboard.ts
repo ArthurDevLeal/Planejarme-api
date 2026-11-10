@@ -5,7 +5,6 @@ import { EnsureUserHasCurrentSemester } from "../semester-service.ts";
 import { withTaskStatus } from "../../utils/task-status.ts";
 import type { DisciplineInclude } from "../../schemas/user-schema.ts";
 
-/** Base de toda tela: quem é o usuário, que dia é e qual semestre está em uso. */
 export async function GetUserContextService(
   userId: string,
   requestedSemesterId?: string,
@@ -39,7 +38,6 @@ export async function GetUserContextService(
 
   if (!user) return null;
 
-  // Esta rota abre toda tela do painel: só escreve no banco quando há o que acertar.
   let semesters = foundSemesters;
   if (!semesters.length || orphanDiscipline || orphanTask) {
     await EnsureUserHasCurrentSemester(userId);
@@ -78,10 +76,6 @@ type FullDiscipline = Prisma.DisciplineGetPayload<{
 type DisciplineRow = Omit<FullDiscipline, "semester" | "schedules" | "materials" | "evaluations"> &
   Partial<Pick<FullDiscipline, "semester" | "schedules" | "materials" | "evaluations">>;
 
-/**
- * Só o que a tela pede em `include`. `schedules` é o que permite somar as faltas de horário:
- * sem ele, `absences` traz apenas as faltas lançadas à mão.
- */
 export async function GetUserDisciplinesService(
   userId: string,
   semesterId: string | undefined,

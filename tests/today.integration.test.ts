@@ -64,7 +64,6 @@ test("dashboard: persistência, limites de acesso, dias pendentes e conclusão r
     assert.equal(dashboard.tasks.length, 1); assert.equal(dashboard.today, date);
     assert.equal((await call("/users/me/dashboard", otherToken)).body.data.disciplines.length, 0);
   } finally {
-    // Limpeza exclusiva das contas criadas por este teste; relacionamentos são removidos por cascade.
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     server.closeAllConnections();
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

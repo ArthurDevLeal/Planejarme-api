@@ -44,7 +44,6 @@ test("recuperar senha, exportar dados e excluir conta", { skip: process.env.RUN_
   const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, { expiresIn: "5m" });
 
   try {
-    // Pedido de link: mesma resposta para conta existente e inexistente; banco guarda só o hash.
     const known = await call("/auth/forgot-password", "POST", { email });
     const unknown = await call("/auth/forgot-password", "POST", { email: `ninguem-${randomUUID()}@example.invalid` });
     assert.equal(known.status, 200);
@@ -53,7 +52,6 @@ test("recuperar senha, exportar dados e excluir conta", { skip: process.env.RUN_
     assert.equal(stored.length, 1);
     assert.match(stored[0].token, /^[0-9a-f]{64}$/);
 
-    // Redefinição com token conhecido (o link real só existe no e-mail).
     const raw = crypto.randomBytes(32).toString("base64url");
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
     await prisma.passwordResetToken.create({
@@ -72,7 +70,6 @@ test("recuperar senha, exportar dados e excluir conta", { skip: process.env.RUN_
     const expired = await call("/auth/reset-password", "POST", { token: expiredRaw, password: "senha-nova-2" });
     assert.equal(expired.body.errorCode, "PASSWORD_RESET_TOKEN_EXPIRED");
 
-    // Exportação: dados completos, sem hash da senha.
     const discipline = await prisma.discipline.create({ data: { name: "Química", workloadHours: 40, userId: user.id } });
     await prisma.material.create({ data: { title: "Tabela", type: "LINK", url: "https://example.com/t", disciplineId: discipline.id } });
     const exported = await call("/users/me/export", "GET", undefined, token);
@@ -82,7 +79,6 @@ test("recuperar senha, exportar dados e excluir conta", { skip: process.env.RUN_
     assert.equal(exported.body.data.disciplines.length, 1);
     assert.equal(exported.body.data.materials.length, 1);
 
-    // Exclusão: exige a senha e remove também materiais (que não saem no cascade).
     const wrong = await call("/users/me", "DELETE", { password: "errada" }, token);
     assert.equal(wrong.status, 400);
     assert.ok(await prisma.user.findUnique({ where: { id: user.id } }));

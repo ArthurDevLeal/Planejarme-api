@@ -10,7 +10,6 @@ shareRouter.use(AuthMiddleware);
 shareRouter.get("/", controller.GetMine);
 shareRouter.put("/links", controller.UpsertLink);
 shareRouter.delete("/links/:id", controller.RevokeLink);
-// Cada convite dispara um e-mail: o limite impede usar o sistema para enviar spam.
 shareRouter.post("/invites", RateLimit({ windowMs: 60 * 60_000, max: 40 }), controller.CreateInvite);
 shareRouter.delete("/invites/:id", controller.RevokeInvite);
 shareRouter.get("/received", controller.GetReceived);

@@ -4,7 +4,6 @@ import { ErrorCode } from "../exceptions/root.ts";
 import { supabase, SUPABASE_STORAGE_BUCKET } from "../lib/supabase.ts";
 import { collectSubtree } from "../utils/folder-tree.ts";
 
-/** RN16: itens ficam 30 dias na lixeira antes da exclusão definitiva. */
 export const TRASH_RETENTION_DAYS = 30;
 const RETENTION_MS = TRASH_RETENTION_DAYS * 86_400_000;
 
@@ -32,7 +31,6 @@ export async function FindTrashByUserService(userId: string) {
       orderBy: { deletedAt: "desc" },
     }),
   ]);
-  // O que foi excluído junto com a pasta aparece só como a pasta, que restaura tudo de uma vez.
   const sameDeletion = (a: Date | null | undefined, b: Date | null) => a?.getTime() === b?.getTime();
   return {
     retentionDays: TRASH_RETENTION_DAYS,
@@ -67,7 +65,6 @@ export async function RestoreTrashItemService(kind: TrashKind, id: string) {
   if (kind === "task") return prisma.task.update({ where: { id }, data: { deletedAt: null } });
   if (kind === "folder") return restoreFolder(id);
 
-  // Se a pasta dele continua na lixeira, o arquivo volta para fora dela.
   const material = await prisma.material.findUniqueOrThrow({ where: { id }, select: { folder: { select: { deletedAt: true } } } });
   return prisma.material.update({
     where: { id },
@@ -75,7 +72,6 @@ export async function RestoreTrashItemService(kind: TrashKind, id: string) {
   });
 }
 
-/** Restaura só o que saiu junto: arquivos excluídos antes da pasta continuam na lixeira. */
 async function restoreFolder(id: string) {
   const folder = await prisma.folder.findUniqueOrThrow({
     where: { id },
@@ -93,7 +89,6 @@ async function restoreFolder(id: string) {
   ]);
 }
 
-/** Apaga do banco e do Storage. Anexos de uma tarefa saem junto com ela. */
 async function destroy(where: { taskIds: string[]; materialIds: string[]; folderIds?: string[] }) {
   const folderIds = where.folderIds ?? [];
   const materials = await prisma.material.findMany({
@@ -124,7 +119,6 @@ export async function DeleteTrashItemForeverService(kind: TrashKind, id: string)
   return destroy(kind === "task" ? { taskIds: [id], materialIds: [] } : { taskIds: [], materialIds: [id] });
 }
 
-/** Cron diário: apaga de vez o que está na lixeira há mais de 30 dias. */
 export async function PurgeExpiredTrashService(now = new Date()) {
   const cutoff = new Date(now.getTime() - RETENTION_MS);
   const [tasks, materials, folders] = await Promise.all([

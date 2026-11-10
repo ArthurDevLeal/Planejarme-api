@@ -15,16 +15,10 @@ function currentSemesterDefaults(now = new Date()) {
   return { startDate, endDate: new Date(startDate.getTime() + SIX_MONTHS_MS) };
 }
 
-/** Normaliza uma data para `00:00Z`, formato usado em colunas `@db.Date`. */
 export function utcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-/**
- * Marco de presença dos horários de uma disciplina no semestre informado.
- * O início do semestre é a âncora da contagem de aulas, portanto horários
- * criados (ou copiados) depois começam a contar a partir do início do período.
- */
 export async function attendanceAnchorForSemester(semesterId: string): Promise<Date> {
   const semester = await prisma.semester.findUnique({
     where: { id: semesterId },
@@ -89,13 +83,11 @@ export async function EnsureUserHasCurrentSemester(userId: string) {
     });
   }
 
-  // Link any orphaned disciplines to this semester
   await prisma.discipline.updateMany({
     where: { userId, semesterId: null },
     data: { semesterId: semester.id },
   });
 
-  // Link any orphaned tasks to this semester
   await prisma.task.updateMany({
     where: { userId, semesterId: null },
     data: { semesterId: semester.id },
@@ -172,11 +164,6 @@ export async function SetCurrentSemesterService(
   });
 }
 
-/**
- * Duplica disciplinas de um semestre para outro do mesmo usuário.
- * Copia os dados da disciplina e, opcionalmente, o horário semanal.
- * Notas, faltas, presenças, tarefas e materiais não são copiados.
- */
 export async function CopyDisciplinesService(
   userId: string,
   sourceSemesterId: string,

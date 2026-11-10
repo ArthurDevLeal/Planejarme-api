@@ -16,7 +16,6 @@ export async function CreateScheduleService(data: CreateScheduleSchemaType) {
     );
   }
 
-  // Aulas de um horário contam a partir do início do semestre da disciplina.
   const attendanceSince = discipline.semesterId
     ? await attendanceAnchorForSemester(discipline.semesterId)
     : undefined;

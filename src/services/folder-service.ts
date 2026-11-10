@@ -45,7 +45,6 @@ export async function MoveFolderService(id: string, userId: string, data: MoveFo
   return findActiveFolder(id);
 }
 
-/** Vai para a lixeira com todo o conteúdo. O acesso compartilhado acaba aqui e não volta ao restaurar. */
 export async function TrashFolderService(id: string, userId: string) {
   const folders = await prisma.folder.findMany({ where: { userId, deletedAt: null }, select: { id: true, parentId: true } });
   const subtree = [...collectSubtree(folders, id)];

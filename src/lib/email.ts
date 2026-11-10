@@ -5,7 +5,6 @@ const EMAIL_FROM = process.env.EMAIL_FROM || "Planejar.me <onboarding@resend.dev
 
 type EmailInput = { to: string; subject: string; html: string; text: string };
 
-/** Envia e-mail pelo Resend (REST). Sem RESEND_API_KEY fora de produção, só registra no log para testar local. */
 export async function SendEmail({ to, subject, html, text }: EmailInput) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

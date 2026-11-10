@@ -32,7 +32,6 @@ test("sem período letivo definido, mantém o teto antigo de 15 semanas", () => 
 
 test("com semestre definido, a contagem termina na data de término do semestre", () => {
   const schedule = { attendanceSince: new Date("2026-08-02T00:00:00Z"), dayOfWeek: 0, attendances: [] };
-  // 2026-08-02 é domingo. De 02/08 até 20/12/2026 são 21 domingos.
   assert.equal(scheduleAbsences(schedule, "2027-02-01", WINDOW), 21);
 });
 
@@ -47,12 +46,10 @@ test("presenças fora do período letivo não reduzem faltas", () => {
     attendanceSince: new Date("2026-08-02T00:00:00Z"),
     dayOfWeek: 0,
     attendances: [
-      { date: new Date("2026-07-26T00:00:00Z"), attended: true }, // antes do semestre: ignorada
-      { date: new Date("2026-08-09T00:00:00Z"), attended: true }, // dentro: válida
+      { date: new Date("2026-07-26T00:00:00Z"), attended: true },
+      { date: new Date("2026-08-09T00:00:00Z"), attended: true },
     ],
   };
-  // Domingos contados de 02/08 até 19/08: 02/08, 09/08 e 16/08 (3 aulas).
-  // Somente a presença de 09/08 abate, então 3 - 1 = 2 faltas.
   assert.equal(scheduleAbsences(schedule, "2026-08-19", WINDOW), 2);
 });
 

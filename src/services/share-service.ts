@@ -42,7 +42,6 @@ function targetOf(row: TargetRow): ShareTarget & { name: string } {
 const targetWhere = (target: ShareTarget) => ({ [`${target.kind}Id`]: target.id });
 const targetData = (target: ShareTarget) => ({ materialId: null, folderId: null, disciplineId: null, ...targetWhere(target) });
 
-/** Só o dono compartilha, e atalhos ficam de fora: eles não entram em pastas nem compartilhamentos. */
 async function assertOwnTarget(userId: string, target: ShareTarget) {
   const notFound = () => new NotFoundException("Item não encontrado. Atualize a página.", ErrorCode.NOT_FOUND);
   if (target.kind === "folder") {
@@ -66,11 +65,6 @@ async function assertOwnTarget(userId: string, target: ShareTarget) {
   return material.title;
 }
 
-// ---------------------------------------------------------------------------
-// Links
-// ---------------------------------------------------------------------------
-
-/** RF: um link ativo por item. Mudar o prazo mantém o endereço; link vencido ganha endereço novo. */
 export async function UpsertShareLinkService(userId: string, target: ShareTarget, expiresIn: ShareExpiry) {
   await assertOwnTarget(userId, target);
   const expiresAt = new Date(Date.now() + EXPIRY_MS[expiresIn]);
@@ -89,15 +83,10 @@ export async function RevokeShareLinkService(userId: string, id: string) {
   if (count === 0) throw new NotFoundException("Este link já foi revogado.", ErrorCode.NOT_FOUND);
 }
 
-// ---------------------------------------------------------------------------
-// Convites
-// ---------------------------------------------------------------------------
-
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 }
 
-/** A resposta é igual exista ou não a conta: recusar revelaria quem usa o sistema. */
 export async function CreateShareInviteService(userId: string, target: ShareTarget, email: string) {
   const name = await assertOwnTarget(userId, target);
   const owner = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, email: true } });
@@ -132,10 +121,6 @@ export async function RevokeShareInviteService(userId: string, id: string) {
   const { count } = await prisma.shareInvite.deleteMany({ where: { id, ownerId: userId } });
   if (count === 0) throw new NotFoundException("Este convite já foi removido.", ErrorCode.NOT_FOUND);
 }
-
-// ---------------------------------------------------------------------------
-// Listas
-// ---------------------------------------------------------------------------
 
 export async function FindSharesByOwnerService(userId: string) {
   const [links, invites] = await Promise.all([
@@ -172,15 +157,10 @@ async function findReceivedInvite(userId: string, id: string) {
   return invite;
 }
 
-/** Tira da lista de quem recebeu, sem afetar o arquivo do dono. */
 export async function LeaveShareService(userId: string, id: string) {
   const invite = await findReceivedInvite(userId, id);
   await prisma.shareInvite.delete({ where: { id: invite.id } });
 }
-
-// ---------------------------------------------------------------------------
-// Conteúdo visto por quem recebe (link ou convite)
-// ---------------------------------------------------------------------------
 
 type ListedMaterial = { id: string; title: string; type: string; mimeType: string | null; fileSizeMb: number | null; createdAt: Date; url: string; storagePath: string | null };
 
@@ -197,7 +177,6 @@ const toFile = (material: ListedMaterial) => ({
 
 const unavailable = () => new NotFoundException("Este conteúdo não está mais disponível.", ErrorCode.NOT_FOUND);
 
-/** O que o compartilhamento alcança: a pasta com as subpastas ou as pastas da disciplina. */
 async function reachableFolders(row: TargetRow) {
   const folders = await prisma.folder.findMany({
     where: { userId: row.ownerId, deletedAt: null },
@@ -270,7 +249,6 @@ async function findLiveLink(token: string) {
     where: { token },
     include: { ...targetInclude, owner: { select: { name: true } } },
   });
-  // Mesma resposta para link inexistente, revogado ou vencido: não confirma que o endereço já existiu.
   if (!link || link.expiresAt.getTime() <= Date.now()) {
     throw new NotFoundException("Este link não existe mais ou expirou.", ErrorCode.NOT_FOUND);
   }

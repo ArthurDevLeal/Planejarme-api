@@ -34,7 +34,6 @@ function decodeOriginalName(originalname: string): string {
       return converted;
     }
   } catch {
-    // fallback to raw originalname
   }
   return originalname;
 }

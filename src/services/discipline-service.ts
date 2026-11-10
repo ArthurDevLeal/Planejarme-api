@@ -19,7 +19,6 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
     const current = await EnsureUserHasCurrentSemester(discipline.userId);
     semesterId = current.id;
   }
-  // A contagem de aulas do horário começa junto com o semestre.
   const attendanceSince = await attendanceAnchorForSemester(semesterId);
 
   let schedulesToCreate:

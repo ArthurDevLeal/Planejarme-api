@@ -11,16 +11,14 @@ import { CreateEvaluationSchema } from "../src/schemas/evaluation-schema.ts";
 import { UpdateUserSchema } from "../src/schemas/user-schema.ts";
 import { storedTaskStatus, withTaskStatus } from "../src/utils/task-status.ts";
 
-const now = new Date("2026-11-01T15:00:00Z"); // 12h em Brasília
+const now = new Date("2026-11-01T15:00:00Z");
 
 test("RN11/RN13: tarefa não concluída com prazo vencido sai como OVERDUE", () => {
   const yesterday = new Date("2026-10-31T15:00:00Z");
   assert.equal(withTaskStatus({ status: "PENDING", dueDate: yesterday }, now).status, "OVERDUE");
   assert.equal(withTaskStatus({ status: "IN_PROGRESS", dueDate: yesterday }, now).status, "IN_PROGRESS");
   assert.equal(withTaskStatus({ status: "COMPLETED", dueDate: yesterday }, now).status, "COMPLETED");
-  // Prazo hoje ainda não venceu, mesmo que o horário já tenha passado.
   assert.equal(withTaskStatus({ status: "PENDING", dueDate: new Date("2026-11-01T03:00:00Z") }, now).status, "PENDING");
-  // 01/11 01h UTC ainda é 31/10 em Brasília: venceu.
   assert.equal(withTaskStatus({ status: "PENDING", dueDate: new Date("2026-11-01T01:00:00Z") }, now).status, "OVERDUE");
   assert.equal(storedTaskStatus("OVERDUE"), "PENDING");
   assert.equal(storedTaskStatus("COMPLETED"), "COMPLETED");
@@ -65,7 +63,6 @@ test("RN06, RN11 e RN09 pela API", { skip: process.env.RUN_DB_TESTS !== "1" }, a
   }
 
   try {
-    // RN06: média ponderada avisa quando os pesos não fecham 10.
     const discipline = await prisma.discipline.create({
       data: { name: "Física", workloadHours: 60, gradingSystem: "WEIGHTED", userId: user.id },
     });
@@ -83,7 +80,6 @@ test("RN06, RN11 e RN09 pela API", { skip: process.env.RUN_DB_TESTS !== "1" }, a
     assert.equal(summary.body.data.weightStatus, "EXCEEDED");
     assert.equal((await call("/evaluations", "POST", { title: "P4", weight: 11, date: "2026-12-01", disciplineId: discipline.id })).status, 400);
 
-    // RN11/RN13: tarefa criada no passado já volta atrasada; reenviar OVERDUE grava PENDING.
     const created = await call("/tasks", "POST", { title: "Lista 1", dueDate: "2020-01-10T12:00:00Z", userId: user.id });
     assert.equal(created.status, 201);
     assert.equal(created.body.data.status, "OVERDUE");
@@ -94,7 +90,6 @@ test("RN06, RN11 e RN09 pela API", { skip: process.env.RUN_DB_TESTS !== "1" }, a
     assert.equal(completed.body.data.status, "COMPLETED");
     assert.ok(completed.body.data.completedAt);
 
-    // RN09: preferência salva e devolvida no dashboard.
     assert.equal((await call("/users/me", "PUT", { roundingMode: "DOWN" })).status, 200);
     const dashboard = await call("/users/me/dashboard");
     assert.equal(dashboard.body.data.user.roundingMode, "DOWN");

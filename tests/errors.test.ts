@@ -18,7 +18,6 @@ const testSecret = "local-error-tests-only";
 
 before(async () => {
   process.env.JWT_SECRET = testSecret;
-  // Os testes das rotas só enviam dados inválidos, antes de qualquer consulta.
   process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/test";
   const { mainRouter } = await import("../src/routes/main-router.ts");
   const app = express();

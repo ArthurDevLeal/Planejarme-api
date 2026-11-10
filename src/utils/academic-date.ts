@@ -7,7 +7,6 @@ export function brasiliaDate(now = new Date()): string {
 const DAY_MS = 86_400_000;
 const FALLBACK_WEEKS = 15;
 
-/** Período letivo do semestre em datas `YYYY-MM-DD` (fuso de Brasília). */
 export type SemesterWindow = {
   startDate?: string | null;
   endDate?: string | null;
@@ -15,7 +14,6 @@ export type SemesterWindow = {
 
 type SemesterDates = { startDate: Date | null; endDate: Date | null };
 
-/** Converte as datas do semestre no período usado pela contagem de aulas. */
 export function courseWindow(semester?: SemesterDates | null): SemesterWindow | undefined {
   if (!semester?.startDate || !semester?.endDate) return undefined;
   return {
@@ -28,11 +26,6 @@ function toStartOfDay(date: Date): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 }
 
-/**
- * Início efetivo da contagem de aulas: a data mais tardia entre o início do
- * semestre e o marco do horário (`attendanceSince`), para não gerar faltas
- * retroativas em horários cadastrados depois do início do período.
- */
 export function effectiveAttendanceStart(
   attendanceSince: Date,
   window?: SemesterWindow,
@@ -45,10 +38,6 @@ export function effectiveAttendanceStart(
   return new Date(semesterStart);
 }
 
-/**
- * Último dia contabilizado do período letivo. Com `endDate` do semestre, a
- * contagem termina nessa data; sem ele, mantém o teto antigo de 15 semanas.
- */
 export function attendanceWindowEnd(
   attendanceSince: Date,
   today: string,
@@ -62,7 +51,6 @@ export function attendanceWindowEnd(
   return Math.min(Date.parse(`${today}T00:00:00Z`), limit);
 }
 
-/** Conta ocorrências semanais inclusivas sem depender do fuso do servidor. */
 export function scheduledClassCount(since: Date, today: string, dayOfWeek: number): number {
   const start = Date.UTC(since.getUTCFullYear(), since.getUTCMonth(), since.getUTCDate());
   const end = Date.parse(`${today}T00:00:00Z`);

@@ -5,7 +5,6 @@ import { AuthMiddleware } from "../middlewares/auth.ts";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { ErrorCode } from "../exceptions/root.ts";
 
-// RN15: até 10 MB e só as extensões do MVP (.doc mantido porque o web já aceitava).
 const ALLOWED_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".xlsx", ".pptx", ".txt"];
 
 const upload = multer({

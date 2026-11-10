@@ -31,7 +31,6 @@ test("semestres e senha: criação com datas, cópia de disciplinas e troca de s
   }
 
   try {
-    // Usuário com senha real para validar a troca de senha.
     const owner = await prisma.user.create({
       data: {
         name: "Configurações temporário",
@@ -50,7 +49,6 @@ test("semestres e senha: criação com datas, cópia de disciplinas e troca de s
     const token = jwt.sign({ id: owner.id }, process.env.JWT_SECRET!, { expiresIn: "5m" });
     const strangerToken = jwt.sign({ id: stranger.id }, process.env.JWT_SECRET!, { expiresIn: "5m" });
 
-    // Criação de semestre: datas obrigatórias e fim posterior ao início.
     assert.equal((await call("/semesters", token, "POST", { name: "2026.2", userId: owner.id })).status, 400);
     const invalidRange = await call("/semesters", token, "POST", {
       name: "2026.2", userId: owner.id, startDate: "2026-12-20", endDate: "2026-08-01",
@@ -71,14 +69,12 @@ test("semestres e senha: criação com datas, cópia de disciplinas e troca de s
     assert.equal(target.status, 201);
     const targetId = target.body.data.id;
 
-    // Troca de semestre atual.
     const switched = await call(`/semesters/${targetId}/current`, token, "PATCH");
     assert.equal(switched.status, 200);
     assert.equal(switched.body.data.isCurrent, true);
     const semesters = (await call(`/semesters/user/${owner.id}`, token)).body.data;
     assert.equal(semesters.filter((semester: { isCurrent: boolean }) => semester.isCurrent).length, 1);
 
-    // Disciplinas do semestre de origem, com horário.
     const discipline = await call("/disciplines", token, "POST", {
       name: "Cálculo I", professor: "Ana", classroom: "Sala 3", workloadHours: 60,
       userId: owner.id, semesterId: sourceId, days: [2],
@@ -90,7 +86,6 @@ test("semestres e senha: criação com datas, cópia de disciplinas e troca de s
     });
     assert.equal(second.status, 201);
 
-    // Cópia sem horários e apenas da disciplina selecionada.
     const copiedShallow = await call(`/semesters/${sourceId}/copy`, token, "POST", {
       targetSemesterId: targetId, disciplineIds: [disciplineId], copySchedules: false,
     });
@@ -105,7 +100,6 @@ test("semestres e senha: criação com datas, cópia de disciplinas e troca de s
     assert.equal(shallow.schedules.length, 0);
     assert.equal(shallow.semesterId, targetId);
 
-    // Cópia com horários e apenas da outra disciplina.
     const copiedFull = await call(`/semesters/${sourceId}/copy`, token, "POST", {
       targetSemesterId: targetId, disciplineIds: [second.body.data.id], copySchedules: true,
     });
@@ -120,14 +114,12 @@ test("semestres e senha: criação com datas, cópia de disciplinas e troca de s
     assert.equal(withSchedules.status, 201);
     assert.equal(withSchedules.body.data.disciplines[0].schedules.length, 1);
 
-    // Sem seleção copia todas as disciplinas do semestre de origem.
     const copiedAll = await call(`/semesters/${sourceId}/copy`, token, "POST", {
       targetSemesterId: targetId, copySchedules: false,
     });
     assert.equal(copiedAll.status, 201);
     assert.equal(copiedAll.body.data.copied, 2);
 
-    // Ordem invertida e lista vazia são rejeitadas.
     assert.equal(
       (await call(`/semesters/${targetId}/copy`, token, "POST", { targetSemesterId: targetId })).status,
       400,
@@ -137,14 +129,12 @@ test("semestres e senha: criação com datas, cópia de disciplinas e troca de s
       400,
     );
 
-    // RN22: outro usuário não copia nem alterna semestre alheio.
     assert.equal(
       (await call(`/semesters/${sourceId}/copy`, strangerToken, "POST", { targetSemesterId: targetId })).status,
       403,
     );
     assert.equal((await call(`/semesters/${targetId}/current`, strangerToken, "PATCH")).status, 403);
 
-    // Troca de senha.
     assert.equal(
       (await call("/users/me/password", token, "PATCH", { currentPassword: "senha-errada", newPassword: "nova-senha-123" })).status,
       400,

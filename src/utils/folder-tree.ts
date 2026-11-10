@@ -1,6 +1,5 @@
 type TreeFolder = { id: string; parentId: string | null };
 
-/** A pasta e tudo o que está dentro dela. */
 export function collectSubtree(folders: TreeFolder[], rootId: string): Set<string> {
   const childrenOf = new Map<string, string[]>();
   for (const folder of folders) {
@@ -18,7 +17,6 @@ export function collectSubtree(folders: TreeFolder[], rootId: string): Set<strin
   return found;
 }
 
-/** Caminho da raiz até a pasta, parando em `stopAtId` (incluído) quando informado. */
 export function buildFolderPath<T extends TreeFolder>(folders: T[], folderId: string, stopAtId?: string): T[] {
   const byId = new Map(folders.map((folder) => [folder.id, folder]));
   const path: T[] = [];

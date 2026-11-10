@@ -8,7 +8,6 @@ const user = { id: "u", name: "Ana", email: "a@example.invalid", phone: null, co
 const semester = { id: "s", name: "2026.2", isCurrent: true, startDate: null, endDate: null };
 
 function stubDatabase(t: TestContext, { semesters = [semester] as unknown[], orphan = null as { id: string } | null } = {}) {
-  // Os delegates do Prisma são Proxies, que t.mock.method não aceita.
   const stub = (target: object, name: string, value: unknown) => {
     const delegate = target as Record<string, unknown>;
     const original = delegate[name];

@@ -1,6 +1,5 @@
 import { prisma } from "../../../lib/prisma.ts";
 
-/** RN23/UC03: todos os dados do usuário em JSON estruturado, sem o hash da senha. */
 export async function ExportUserDataService(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -18,7 +17,6 @@ export async function ExportUserDataService(userId: string) {
   });
   if (!user) return null;
 
-  // Material não tem relação com User: dono direto ou pela disciplina (materiais antigos).
   const materials = await prisma.material.findMany({
     where: { OR: [{ userId }, { discipline: { userId } }] },
     orderBy: { createdAt: "asc" },

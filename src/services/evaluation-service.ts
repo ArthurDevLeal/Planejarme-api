@@ -16,7 +16,6 @@ export function FindEvaluationsByDisciplineService(disciplineId: string) {
   });
 }
 
-// RN06: em média ponderada os pesos de todas as avaliações devem somar 10.
 const TARGET_WEIGHT = 10;
 
 export async function FindEvaluationSummaryService(disciplineId: string) {

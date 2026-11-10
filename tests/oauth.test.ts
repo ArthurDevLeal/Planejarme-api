@@ -68,7 +68,6 @@ test("callback recusa state ausente ou trocado e acesso negado", async () => {
     fragment((await go("/auth/oauth/google/callback?code=x&state=abc", "oauth_state=google%3Aoutro")).location).get("error"),
     "state",
   );
-  // State do GitHub não serve para o callback do Google.
   assert.equal(
     fragment((await go("/auth/oauth/google/callback?code=x&state=abc", "oauth_state=github%3Aabc")).location).get("error"),
     "state",

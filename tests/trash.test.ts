@@ -71,7 +71,6 @@ test("RN16 e RF13: lixeira, restauração, exclusão definitiva, limpeza e anexo
       data: { title: "Relatório", dueDate: new Date("2099-01-10"), userId: owner.id, disciplineId: discipline.id },
     });
 
-    // Anexo: link na tarefa herda a disciplina dela; outro usuário não anexa nem lista.
     const attached = await call("/materials", "POST", { title: "Enunciado", type: "LINK", url: "https://example.com/e", taskId: task.id });
     assert.equal(attached.status, 201);
     assert.equal(attached.body.data.taskId, task.id);
@@ -83,7 +82,6 @@ test("RN16 e RF13: lixeira, restauração, exclusão definitiva, limpeza e anexo
       403,
     );
 
-    // Excluir manda para a lixeira: some das listas e do GET, aparece em /trash.
     assert.equal((await call(`/tasks/${task.id}`, "DELETE")).status, 200);
     assert.equal((await call(`/tasks/${task.id}`)).status, 404);
     assert.ok(!(await call(`/tasks/user/${owner.id}`)).body.data.some((t: { id: string }) => t.id === task.id));
@@ -91,19 +89,16 @@ test("RN16 e RF13: lixeira, restauração, exclusão definitiva, limpeza e anexo
     assert.equal(trash.body.data.retentionDays, 30);
     assert.deepEqual(trash.body.data.tasks.map((t: { id: string }) => t.id), [task.id]);
 
-    // Outro usuário não restaura; o dono restaura.
     assert.equal((await call(`/trash/task/${task.id}/restore`, "PATCH", undefined, tokenFor(stranger.id))).status, 403);
     assert.equal((await call(`/trash/task/${task.id}/restore`, "PATCH")).status, 200);
     assert.equal((await call(`/tasks/${task.id}`)).status, 200);
     assert.equal((await call(`/trash/task/${task.id}/restore`, "PATCH")).status, 404);
 
-    // Exclusão definitiva leva os anexos junto.
     await call(`/tasks/${task.id}`, "DELETE");
     assert.equal((await call(`/trash/task/${task.id}`, "DELETE")).status, 200);
     assert.equal(await prisma.task.findUnique({ where: { id: task.id } }), null);
     assert.equal(await prisma.material.findUnique({ where: { id: attached.body.data.id } }), null);
 
-    // Limpeza do cron: só o que passou de 30 dias.
     const old = await prisma.material.create({
       data: { title: "Antigo", type: "LINK", url: "https://example.com/a", userId: owner.id, deletedAt: new Date("2099-01-01") },
     });

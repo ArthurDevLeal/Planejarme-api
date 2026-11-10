@@ -5,7 +5,6 @@ import { NotFoundException } from "../../exceptions/not-found.ts";
 import { ErrorCode } from "../../exceptions/root.ts";
 import { supabase, SUPABASE_STORAGE_BUCKET } from "../../lib/supabase.ts";
 
-/** RNF04/RN23: exclusão definitiva, confirmada pela senha. Apaga também materiais e arquivos no Storage. */
 export async function DeleteUserService(userId: string, password: string) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
   if (!user) throw new NotFoundException("Usuário não encontrado.", ErrorCode.USER_NOT_FOUND);
@@ -13,7 +12,6 @@ export async function DeleteUserService(userId: string, password: string) {
     throw new BadRequestsException("A senha está incorreta. Confira e tente novamente.", ErrorCode.INVALID_DATA);
   }
 
-  // Material não tem relação com User, então não sai no cascade.
   const ownedMaterials = { OR: [{ userId }, { discipline: { userId } }] };
   const files = await prisma.material.findMany({
     where: { ...ownedMaterials, storagePath: { not: null } },

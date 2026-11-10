@@ -11,13 +11,8 @@ function whenLabel(offset: number) {
   return offset === 0 ? "hoje" : offset === 1 ? "amanhã" : `em ${offset} dias`;
 }
 
-/**
- * RF17/RN12: alertas de tarefas que vencem hoje ou amanhã e de provas sem nota nos próximos 2 dias.
- * Roda no cron diário; a chave (item + data) faz o aviso sair uma vez só, mesmo rodando de novo.
- */
 export async function GenerateDueNotificationsService(now = new Date()) {
   const today = brasiliaDate(now);
-  // Janela larga em UTC; o recorte por dia de Brasília é feito em dayOffset.
   const range = { gte: new Date(now.getTime() - DAY_MS), lte: new Date(now.getTime() + 4 * DAY_MS) };
 
   const [tasks, evaluations] = await Promise.all([

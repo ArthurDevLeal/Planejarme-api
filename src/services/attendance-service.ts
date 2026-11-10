@@ -28,8 +28,6 @@ export async function SetAttendanceService(userId: string, scheduleId: string, a
     throw new BadRequestsException("A data precisa ser um dia de aula dentro do período letivo do semestre.", ErrorCode.INVALID_DATA);
   }
 
-  // RN04 — Trava de Carga Horária Excedida:
-  // Se está registrando falta (attended = false), verificar se não ultrapassa a carga horária total
   if (!attended) {
     const existingRecord = await prisma.scheduleAttendance.findUnique({
       where: { scheduleId_date: { scheduleId, date } },
@@ -40,7 +38,6 @@ export async function SetAttendanceService(userId: string, scheduleId: string, a
         (total, s) => total + scheduleAbsences(s, today, window),
         0
       );
-    // Se o registro anterior era attended = true, alterá-lo para attended = false adiciona 1 falta.
     const wouldIncrease = existingRecord?.attended === true;
     if (wouldIncrease && currentAbsences + 1 > schedule.discipline.workloadHours) {
       throw new BadRequestsException(
@@ -56,7 +53,6 @@ export async function SetAttendanceService(userId: string, scheduleId: string, a
     }
   }
 
-  // RN03 — O estado desejado é idempotente: repetir uma requisição não duplica a aula.
   return prisma.scheduleAttendance.upsert({
     where: { scheduleId_date: { scheduleId, date } },
     create: { scheduleId, date, attended }, update: { attended },

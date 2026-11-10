@@ -83,7 +83,6 @@ test("usuário não acessa inbox, notificações nem materiais de outro", { skip
     const material = await prisma.material.create({
       data: { title: "Slides", type: "LINK", url: "https://example.com/slides", userId: owner.id },
     });
-    // Material antigo sem userId: o dono vem da disciplina.
     const legacyMaterial = await prisma.material.create({
       data: { title: "Apostila", type: "LINK", url: "https://example.com/apostila", disciplineId: discipline.id },
     });
@@ -116,7 +115,6 @@ test("usuário não acessa inbox, notificações nem materiais de outro", { skip
       assert.equal(status, 403, `${method} ${path} deveria ser 403 para outro usuário`);
     }
 
-    // O dono continua com acesso, inclusive pelo alias "me".
     assert.equal((await call(`/inbox-items/${inbox.id}`, ownerToken)).status, 200);
     assert.equal((await call("/notifications/user/me", ownerToken)).status, 200);
     assert.equal((await call(`/materials/${legacyMaterial.id}`, ownerToken)).status, 200);
@@ -124,12 +122,10 @@ test("usuário não acessa inbox, notificações nem materiais de outro", { skip
     assert.equal(created.status, 201);
     assert.equal(created.body.data.userId, owner.id);
 
-    // Nada do dono foi alterado pelas tentativas acima.
     assert.equal((await prisma.inboxItem.findUnique({ where: { id: inbox.id } }))?.content, "link");
     assert.equal((await prisma.notification.findUnique({ where: { id: notification.id } }))?.read, false);
     assert.equal((await prisma.material.findUnique({ where: { id: material.id } }))?.title, "Slides");
 
-    // Login com e-mail inexistente responde igual a senha errada.
     const login = await call("/auth/signin", undefined, "POST", {
       email: `ninguem-${randomUUID()}@example.invalid`,
       password: "qualquer-senha",
@@ -137,13 +133,11 @@ test("usuário não acessa inbox, notificações nem materiais de outro", { skip
     assert.equal(login.status, 400);
     assert.equal(login.body.errorCode, "INVALID_CREDENTIALS");
   } finally {
-    // Material não tem relação com User, então não some no cascade.
     await prisma.material.deleteMany({ where: { id: { in: createdMaterialIds } } });
     await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
   }
 });
 
-// Fica por último: depois dele o IP local está bloqueado no login até a janela expirar.
 test("login limita tentativas por IP com 429", async () => {
   let last = 0;
   for (let i = 0; i < 11; i++) last = (await call("/auth/signin", undefined, "POST", {})).status;

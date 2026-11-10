@@ -257,8 +257,8 @@ async function applyEvent(event: AbacateEvent, now: Date, deps: Dependencies) {
 
 /** Idempotente: o id do evento é gravado antes de processar; se o processamento falhar, o registro sai para a Abacate Pay poder repetir. */
 export async function HandleAbacateEventService(event: AbacateEvent, deps: Partial<Dependencies> = {}, now = new Date()) {
-  // Evento de Dev mode nunca mexe em conta de produção.
-  if (process.env.NODE_ENV === "production" && event.devMode === true) return { duplicate: false, ignored: true };
+  // Evento de Dev mode só vale enquanto a loja usa chave de Dev; com chave de produção ele nunca mexe em conta.
+  if (event.devMode === true && process.env.ABACATEPAY_API_KEY?.startsWith("abc_prod_")) return { duplicate: false, ignored: true };
   const { count } = await prisma.billingEvent.createMany({ data: [{ id: event.id, type: event.event }], skipDuplicates: true });
   if (count === 0) return { duplicate: true };
   try {

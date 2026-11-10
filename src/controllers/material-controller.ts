@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import crypto from "node:crypto";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
@@ -9,10 +8,12 @@ import { AuthorizeRequestService } from "../services/authorization-service.ts";
 import {
   CreateMaterialSchema,
   DisciplineIdSchema,
+  FinalizeUploadSchema,
   GetMaterialsQuerySchema,
   MaterialIdSchema,
   TaskIdSchema,
   UpdateMaterialSchema,
+  UploadUrlSchema,
 } from "../schemas/material-schema.ts";
 import { UserIdSchema } from "../schemas/user-schema.ts";
 import {
@@ -24,26 +25,9 @@ import {
   FindMaterialsByUserService,
   UpdateMaterialService,
 } from "../services/material-service.ts";
+import { CreateUploadUrlService, FinalizeUploadService } from "../services/upload-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
-
-function decodeOriginalName(originalname: string): string {
-  try {
-    const converted = Buffer.from(originalname, "latin1").toString("utf8");
-    if (!converted.includes("\uFFFD")) {
-      return converted;
-    }
-  } catch {
-  }
-  return originalname;
-}
-
-function sanitizeFilename(filename: string): string {
-  return filename
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "_");
-}
 
 export class MaterialController {
   GetMaterialsByUser = ErrorHandler(async (req: Request, res: Response) => {
@@ -145,61 +129,22 @@ export class MaterialController {
     return sendSuccess(res, await FindMaterialsByTaskService(result.data.taskId));
   });
 
+  CreateUploadUrl = ErrorHandler(async (req: Request, res: Response) => {
+    const result = UploadUrlSchema.safeParse(req.body);
+    if (!result.success) {
+      throw new BadRequestsException("Nenhum arquivo enviado. Selecione um arquivo para upload.", ErrorCode.INVALID_DATA);
+    }
+    return sendSuccess(res, await CreateUploadUrlService(req.userId, result.data), "Upload URL created", 201);
+  });
+
   UploadMaterial = ErrorHandler(async (req: Request, res: Response) => {
-    if (!req.file) {
-      throw new BadRequestsException(
-        "Nenhum arquivo enviado. Selecione um arquivo para upload.",
-        ErrorCode.INVALID_DATA
-      );
+    const result = FinalizeUploadSchema.safeParse(req.body);
+    if (!result.success) {
+      throw new BadRequestsException("Nenhum arquivo enviado. Selecione um arquivo para upload.", ErrorCode.INVALID_DATA);
     }
-
-    const userId = req.userId;
-    const disciplineId = typeof req.body.disciplineId === "string" && req.body.disciplineId.trim().length > 0
-      ? req.body.disciplineId.trim()
-      : null;
-    const taskId = typeof req.body.taskId === "string" && req.body.taskId.trim().length > 0 ? req.body.taskId.trim() : null;
-    const folderId = typeof req.body.folderId === "string" && req.body.folderId.trim().length > 0 ? req.body.folderId.trim() : null;
-    await AuthorizeRequestService(userId, "material", {}, { disciplineId, taskId, folderId });
-    const originalName = decodeOriginalName(req.file.originalname);
-    const safeName = sanitizeFilename(originalName);
-    const extension = originalName.includes(".") ? originalName.split(".").pop()?.toUpperCase() ?? "FILE" : "FILE";
-    const storagePath = `${userId}/${crypto.randomUUID()}-${safeName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from(SUPABASE_STORAGE_BUCKET)
-      .upload(storagePath, req.file.buffer, {
-        contentType: req.file.mimetype,
-        upsert: true,
-      });
-
-    if (uploadError) {
-      throw new BadRequestsException(
-        `Falha ao salvar arquivo no Supabase Storage: ${uploadError.message}`,
-        ErrorCode.INVALID_DATA,
-        uploadError
-      );
-    }
-
-    const title = typeof req.body.title === "string" && req.body.title.trim().length > 0
-      ? req.body.title.trim()
-      : originalName;
-
-    const fileSizeMb = Number((req.file.size / (1024 * 1024)).toFixed(2));
-
-    const material = await CreateMaterialService({
-      title,
-      type: extension,
-      url: "",
-      fileSizeMb,
-      mimeType: req.file.mimetype,
-      storagePath,
-      userId,
-      disciplineId,
-      taskId,
-      folderId,
-    });
-
-    return sendSuccess(res, material, "Material enviado com sucesso", 201);
+    const { disciplineId, taskId, folderId } = result.data;
+    await AuthorizeRequestService(req.userId, "material", {}, { disciplineId, taskId, folderId });
+    return sendSuccess(res, await FinalizeUploadService(req.userId, result.data), "Material enviado com sucesso", 201);
   });
 
   CreateMaterial = ErrorHandler(async (req: Request, res: Response) => {

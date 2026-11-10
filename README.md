@@ -38,7 +38,7 @@ npm run dev
 | `npm run build` / `npm start` | Typecheck + bundle e servidor de produção |
 | `npm run typecheck` | Só o TypeScript |
 | `npm test` | Testes sem banco |
-| `RUN_DB_TESTS=1 npm test` | Inclui os testes que usam o banco (use um banco de desenvolvimento) |
+| `RUN_DB_TESTS=1 npm test` | Inclui os testes que usam o banco e o bucket do Storage (use os de desenvolvimento) |
 
 ## Variáveis de ambiente
 
@@ -50,4 +50,4 @@ Todas estão comentadas no [`.env.example`](.env.example): banco, `JWT_SECRET`, 
 - Validação com Zod em `src/schemas`; dono do registro checado em `src/services/authorization-service.ts`.
 - Contrato de erros, autenticação e endpoints de conta: [`docs/ERROS.md`](docs/ERROS.md).
 - Histórico do banco: [`prisma/migrations/README.md`](prisma/migrations/README.md). Mudança de schema sempre com migration nova.
-- Tarefas agendadas: `vercel.json` chama `GET /cron/daily` (avisos e limpeza da lixeira) com `Authorization: Bearer <CRON_SECRET>`.
+- Tarefas agendadas: `vercel.json` chama `GET /cron/daily` (avisos, limpeza da lixeira, nova tentativa das remoções do Storage que falharam e varredura de arquivos sem registro) com `Authorization: Bearer <CRON_SECRET>`.

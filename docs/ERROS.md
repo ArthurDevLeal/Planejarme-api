@@ -18,6 +18,10 @@ Validação: `npm test` (37 testes), `npm run typecheck` e `npm run build`. Os t
 
 Todas as rotas exigem `Authorization: Bearer <token>`, exceto `POST /auth/signin`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /auth/oauth/:provider` (+ `/callback`) e `POST /users` (cadastro). Acesso a registro de outro usuário retorna 403 `FORBIDDEN`; registro inexistente retorna 404 com o código do recurso. A checagem fica em `src/services/authorization-service.ts`; o alias `me` nas rotas `/user/:userId` aponta para o usuário do token.
 
+Limite do plano (`src/config/plans.ts`) devolve `PLAN_LIMIT_REACHED` (403): arquivo acima do tamanho por arquivo, armazenamento cheio ou disciplinas por semestre no teto. A mensagem já diz o que fazer; o web acrescenta o botão de upgrade. Nada é apagado por causa do limite.
+
+Upload: `POST /materials/upload-url` (`fileName`, `sizeBytes`) devolve `path` e `signedUrl`; o navegador envia o arquivo com `PUT` direto ao Storage (com `Content-Type`) e confirma em `POST /materials/upload` (`path`, mais `fileName`, `title`, `disciplineId`, `taskId`, `folderId` opcionais). A confirmação confere tamanho e tipo, comprime, deduplica por SHA-256 dentro do mesmo usuário e gera miniatura. `GET /users/me/usage` devolve plano, uso, limite e economia da compressão.
+
 Em materiais, `userId` e `storagePath` nunca vêm do corpo: o dono é o usuário do token e o `storagePath` só é definido pelo upload. Materiais antigos sem `userId` pertencem ao dono da disciplina.
 
 Login com e-mail inexistente ou senha errada responde igual: 400 `INVALID_CREDENTIALS`, com o mesmo custo de bcrypt.

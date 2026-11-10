@@ -159,19 +159,23 @@ test("POST /materials com Bearer token associa material ao req.userId autenticad
   await prisma.material.delete({ where: { id: materialId } }).catch(() => {});
 });
 
-test("POST /materials/upload com arquivo multipart real, acentos e espaços", dbTest, async () => {
+test("upload por URL assinada com arquivo real, acentos e espaços", dbTest, async () => {
   const testUserId = "27800be8-7b37-4287-8a0a-2e6587fa220f";
   const token = jwt.sign({ id: testUserId }, process.env.JWT_SECRET || "awdpkajdajd0ahd08uajhdo8ahd0a8hdadnadha08ushd");
 
-  const formData = new FormData();
-  const fileContent = "PDF simulado para teste de upload e download";
-  formData.append("file", new Blob([fileContent], { type: "application/pdf" }), "Relatório de Física #1.pdf");
-
-  const uploadRes = await fetch(`${baseUrl}/materials/upload`, {
+  const fileContent = `PDF simulado para teste de upload e download ${Date.now()}`;
+  const fileName = "Relatório de Física #1.pdf";
+  const json = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const urlRes = await fetch(`${baseUrl}/materials/upload-url`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
+    headers: json,
+    body: JSON.stringify({ fileName, sizeBytes: Buffer.byteLength(fileContent) }),
   });
+  assert.equal(urlRes.status, 201);
+  const { path, signedUrl } = (await urlRes.json()).data;
+  assert.ok((await fetch(signedUrl, { method: "PUT", headers: { "Content-Type": "application/pdf" }, body: fileContent })).ok);
+
+  const uploadRes = await fetch(`${baseUrl}/materials/upload`, { method: "POST", headers: json, body: JSON.stringify({ path, fileName }) });
 
   assert.equal(uploadRes.status, 201);
   const uploadBody = await uploadRes.json();

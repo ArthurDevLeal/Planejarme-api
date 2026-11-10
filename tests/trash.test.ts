@@ -38,12 +38,10 @@ test("lixeira só aceita tarefa ou material", () => {
 });
 
 test("RN15: upload recusa extensão fora da lista", async () => {
-  const form = new FormData();
-  form.append("file", new Blob(["MZ"], { type: "application/octet-stream" }), "programa.exe");
-  const response = await fetch(`${baseUrl}/materials/upload`, {
+  const response = await fetch(`${baseUrl}/materials/upload-url`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${tokenFor("qualquer")}` },
-    body: form,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenFor("qualquer")}` },
+    body: JSON.stringify({ fileName: "programa.exe", sizeBytes: 2 }),
   });
   assert.equal(response.status, 400);
   assert.match((await response.json()).message, /Tipo de arquivo não aceito/);

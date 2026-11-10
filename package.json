@@ -20,7 +20,6 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/multer": "^2.3.0",
     "@types/node": "^26.5.0",
     "@types/pg": "^8.23.1",
     "prisma": "^7.10.0",
@@ -38,8 +37,9 @@
     "express": "^5.2.1",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.4.0",
+    "pdf-lib": "^1.17.1",
     "pg": "^8.23.0",
+    "sharp": "^0.35.5",
     "zod": "^4.5.4"
   }
 }

@@ -3,7 +3,7 @@ import { prisma } from "../../../lib/prisma.ts";
 import { BadRequestsException } from "../../exceptions/bad-requests.ts";
 import { NotFoundException } from "../../exceptions/not-found.ts";
 import { ErrorCode } from "../../exceptions/root.ts";
-import { supabase, SUPABASE_STORAGE_BUCKET } from "../../lib/supabase.ts";
+import { ReleaseStorageObjects } from "../storage-service.ts";
 
 export async function DeleteUserService(userId: string, password: string) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
@@ -15,7 +15,7 @@ export async function DeleteUserService(userId: string, password: string) {
   const ownedMaterials = { OR: [{ userId }, { discipline: { userId } }] };
   const files = await prisma.material.findMany({
     where: { ...ownedMaterials, storagePath: { not: null } },
-    select: { storagePath: true },
+    select: { storagePath: true, thumbnailPath: true },
   });
 
   await prisma.$transaction([
@@ -23,10 +23,6 @@ export async function DeleteUserService(userId: string, password: string) {
     prisma.user.delete({ where: { id: userId } }),
   ]);
 
-  // Depois do banco: se o Storage falhar, a conta já foi removida e sobram só arquivos órfãos.
-  const paths = files.map((file) => file.storagePath!).filter(Boolean);
-  if (paths.length > 0) {
-    const { error } = await supabase.storage.from(SUPABASE_STORAGE_BUCKET).remove(paths);
-    if (error) console.error("[delete-user] arquivos não removidos do Storage", paths.length, error.message);
-  }
+  // Depois do banco: o que o Storage não remover agora entra na fila do cron.
+  await ReleaseStorageObjects(files.flatMap((file) => [file.storagePath, file.thumbnailPath]));
 }

@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
-import { supabase, SUPABASE_STORAGE_BUCKET } from "../lib/supabase.ts";
+import { ReleaseStorageObjects } from "./storage-service.ts";
 import { collectSubtree } from "../utils/folder-tree.ts";
 
 export const TRASH_RETENTION_DAYS = 30;
@@ -93,19 +93,15 @@ async function destroy(where: { taskIds: string[]; materialIds: string[]; folder
   const folderIds = where.folderIds ?? [];
   const materials = await prisma.material.findMany({
     where: { OR: [{ id: { in: where.materialIds } }, { taskId: { in: where.taskIds } }, { folderId: { in: folderIds } }] },
-    select: { id: true, storagePath: true },
+    select: { id: true, storagePath: true, thumbnailPath: true },
   });
   await prisma.$transaction([
     prisma.material.deleteMany({ where: { id: { in: materials.map((m) => m.id) } } }),
     prisma.task.deleteMany({ where: { id: { in: where.taskIds } } }),
     prisma.folder.deleteMany({ where: { id: { in: folderIds } } }),
   ]);
-  // Depois do banco: se o Storage falhar, sobram só arquivos órfãos, nunca registros apontando para nada.
-  const paths = materials.map((m) => m.storagePath).filter((path): path is string => Boolean(path));
-  if (paths.length > 0) {
-    const { error } = await supabase.storage.from(SUPABASE_STORAGE_BUCKET).remove(paths);
-    if (error) console.error("[trash] arquivos não removidos do Storage", paths.length, error.message);
-  }
+  // Depois do banco, e só o que ficou sem nenhuma linha: arquivo repetido divide o mesmo objeto.
+  await ReleaseStorageObjects(materials.flatMap((m) => [m.storagePath, m.thumbnailPath]));
   return { tasks: where.taskIds.length, materials: materials.length };
 }
 

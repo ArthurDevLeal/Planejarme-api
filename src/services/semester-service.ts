@@ -1,3 +1,4 @@
+import { assertDisciplineSlots } from "./plan-service.ts";
 import { prisma } from "../../lib/prisma.ts";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
@@ -213,6 +214,8 @@ export async function CopyDisciplinesService(
       ErrorCode.INVALID_DATA,
     );
   }
+
+  await assertDisciplineSlots(userId, data.targetSemesterId, disciplines.length);
 
   return prisma.$transaction(
     disciplines.map((discipline) =>

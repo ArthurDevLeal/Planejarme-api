@@ -4,6 +4,7 @@ import { ErrorCode } from "../exceptions/root.ts";
 import { CreateDisciplineSchemaType, UpdateDisciplineSchemaType } from "../schemas/discipline-schema.ts";
 import { brasiliaDate, courseWindow, scheduleAbsences } from "../utils/academic-date.ts";
 
+import { assertDisciplineSlots } from "./plan-service.ts";
 import { EnsureUserHasCurrentSemester, attendanceAnchorForSemester } from "./semester-service.ts";
 
 export async function CreateDisciplineService(data: CreateDisciplineSchemaType) {
@@ -19,6 +20,7 @@ export async function CreateDisciplineService(data: CreateDisciplineSchemaType) 
     const current = await EnsureUserHasCurrentSemester(discipline.userId);
     semesterId = current.id;
   }
+  await assertDisciplineSlots(discipline.userId, semesterId);
   const attendanceSince = await attendanceAnchorForSemester(semesterId);
 
   let schedulesToCreate:
@@ -129,6 +131,22 @@ export async function UpdateDisciplineService(id: string, data: UpdateDiscipline
   return prisma.discipline.update({ where: { id }, data });
 }
 
-export function DeleteDisciplineService(id: string) {
-  return prisma.discipline.delete({ where: { id } });
+/** Materiais e pastas da disciplina vão para a lixeira (30 dias) em vez de ficarem soltos; o compartilhamento deles acaba aqui. */
+export async function DeleteDisciplineService(id: string) {
+  const deletedAt = new Date();
+  const [folders, materials] = await Promise.all([
+    prisma.folder.findMany({ where: { disciplineId: id, deletedAt: null }, select: { id: true } }),
+    prisma.material.findMany({ where: { disciplineId: id, deletedAt: null }, select: { id: true } }),
+  ]);
+  const folderIds = folders.map((folder) => folder.id);
+  const materialIds = materials.map((material) => material.id);
+  const shared = { OR: [{ folderId: { in: folderIds } }, { materialId: { in: materialIds } }] };
+  const results = await prisma.$transaction([
+    prisma.folder.updateMany({ where: { id: { in: folderIds } }, data: { deletedAt } }),
+    prisma.material.updateMany({ where: { id: { in: materialIds } }, data: { deletedAt } }),
+    prisma.shareLink.deleteMany({ where: shared }),
+    prisma.shareInvite.deleteMany({ where: shared }),
+    prisma.discipline.delete({ where: { id } }),
+  ]);
+  return results[4];
 }

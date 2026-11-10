@@ -25,6 +25,7 @@ import {
 } from "../services/user/get-user-dashboard.ts";
 import { ChangePasswordService } from "../services/user/change-password.ts";
 import { UpdateUserService } from "../services/user/update-user.ts";
+import { GetUsageService } from "../services/plan-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
@@ -47,6 +48,9 @@ export class UserController {
   GetCurrentUserDisciplines = ErrorHandler(async (req: Request, res: Response) => {
     const { semesterId, include } = screenQuery(req);
     return sendSuccess(res, await GetUserDisciplinesService(req.userId, semesterId, include));
+  });
+  GetCurrentUserUsage = ErrorHandler(async (req: Request, res: Response) => {
+    return sendSuccess(res, await GetUsageService(req.userId));
   });
   GetCurrentUserTasks = ErrorHandler(async (req: Request, res: Response) => {
     return sendSuccess(res, await GetUserTasksService(req.userId, screenQuery(req).semesterId));

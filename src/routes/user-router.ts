@@ -12,6 +12,7 @@ userRouter.get("/me/dashboard", controller.GetCurrentUserDashboard);
 userRouter.get("/me/context", controller.GetCurrentUserContext);
 userRouter.get("/me/disciplines", controller.GetCurrentUserDisciplines);
 userRouter.get("/me/tasks", controller.GetCurrentUserTasks);
+userRouter.get("/me/usage", controller.GetCurrentUserUsage);
 userRouter.patch("/me/password", controller.UpdatePassword);
 userRouter.get("/me/export", controller.ExportCurrentUserData);
 

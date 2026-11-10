@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { prisma } from "../../lib/prisma.ts";
 import { adminEmails, BillingInterval, COMMISSION_HOLD_DAYS, commissionCents, ENTITLED_STATUSES, PRO_PRICES, webUrl } from "../config/billing.ts";
+import { PLANS } from "../config/plans.ts";
 import { HttpException, ErrorCode } from "../exceptions/root.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { stripe } from "../lib/stripe.ts";
@@ -19,6 +20,8 @@ export async function GetBillingService(userId: string) {
     subscriptionStatus: user.subscriptionStatus,
     currentPeriodEnd: user.currentPeriodEnd,
     prices: { monthlyCents: PRO_PRICES.monthly.cents, yearlyCents: PRO_PRICES.yearly.cents },
+    // Os limites de cada plano, para a tela de upgrade comparar sem repetir números no web.
+    limits: PLANS,
     // Sem chave e sem preços o botão de assinar não aparece: nada de checkout que só falha.
     checkoutAvailable: Boolean(process.env.STRIPE_SECRET_KEY && process.env[PRO_PRICES.monthly.env] && process.env[PRO_PRICES.yearly.env]),
     isAdmin: adminEmails().includes(user.email.toLowerCase()),

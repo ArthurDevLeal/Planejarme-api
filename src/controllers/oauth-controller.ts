@@ -7,9 +7,12 @@ import {
   isOAuthProvider,
   OAuthError,
 } from "../services/auth/oauth.ts";
+import { REFERRAL_CODE } from "../services/affiliate-service.ts";
 import { signSessionToken } from "../utils/session-token.ts";
 
 const STATE_COOKIE = "oauth_state";
+// O cookie `ref` vive no domínio do web; o web repassa o código em ?ref= e ele atravessa o OAuth neste cookie.
+const REF_COOKIE = "oauth_ref";
 
 function webCallback(fragment: Record<string, string>) {
   const webUrl = (process.env.WEB_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -43,6 +46,10 @@ export class OAuthController {
         maxAge: 10 * 60 * 1000,
         path: "/auth/oauth",
       });
+      const ref = typeof req.query.ref === "string" ? req.query.ref.toUpperCase() : "";
+      if (REFERRAL_CODE.test(ref)) {
+        res.cookie(REF_COOKIE, ref, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 10 * 60 * 1000, path: "/auth/oauth" });
+      }
       return res.redirect(url);
     } catch (error) {
       return res.redirect(webCallback({ error: error instanceof OAuthError ? error.code : "failed" }));
@@ -52,7 +59,9 @@ export class OAuthController {
   Callback = async (req: Request, res: Response) => {
     const provider = String(req.params.provider);
     const expected = readCookie(req, STATE_COOKIE);
+    const ref = readCookie(req, REF_COOKIE);
     res.clearCookie(STATE_COOKIE, { path: "/auth/oauth" });
+    res.clearCookie(REF_COOKIE, { path: "/auth/oauth" });
     try {
       if (!isOAuthProvider(provider)) throw new OAuthError("unavailable");
       if (typeof req.query.error === "string") throw new OAuthError("denied");
@@ -62,7 +71,7 @@ export class OAuthController {
       if (!code) throw new OAuthError("failed", "código ausente");
 
       const profile = await FetchOAuthProfileService(provider, code);
-      const { userId, isNew } = await FindOrCreateOAuthUserService(profile);
+      const { userId, isNew } = await FindOrCreateOAuthUserService(profile, ref);
       return res.redirect(webCallback({ token: signSessionToken(userId), ...(isNew ? { new: "1" } : {}) }));
     } catch (error) {
       if (!(error instanceof OAuthError) || error.code === "failed") console.error("[oauth]", provider, error);

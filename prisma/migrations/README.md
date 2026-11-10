@@ -28,6 +28,7 @@ resetado e passou a ter só o baseline, depois recebeu o seed.
 | `20261101200000_trash_and_task_attachments` | Adiciona `Task.deletedAt`, `Material.deletedAt` e `Material.taskId` (FK, `SET NULL`) para lixeira (RN16) e anexos (RF13). Aditiva. |
 | `20261105120000_drive_folders_and_sharing` | Cria `Folder`, `ShareLink` e `ShareInvite` e adiciona `Material.folderId` (FK, `SET NULL`). Aditiva. |
 | `20261106120000_task_description` | Adiciona `Task.description` (JSONB nulo) para o texto da tarefa. Aditiva. |
+| `20261110180000_billing_and_affiliates` | Adiciona a `User` os campos de plano/assinatura e de afiliado, e cria `StripeEvent` (idempotência do webhook), `Commission` e `AffiliateEvent` (histórico do admin). Aditiva; todos ficam `FREE`. |
 | `20261110120000_discipline_color_icon` | Adiciona `Discipline.color` (índice da paleta) e `Discipline.icon`, ambos nulos por padrão. Aditiva. |
 | `20261109120000_storage_quota_and_dedup` | Adiciona a `Material` os campos `sizeBytes`, `originalSizeBytes`, `sha256`, `thumbnailPath` e `thumbnailBytes` (com backfill a partir de `fileSizeMb`), preenche `userId` de materiais antigos e cria `StorageDeletion` (fila de remoções do Storage). Aditiva. |
 

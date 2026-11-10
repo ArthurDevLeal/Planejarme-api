@@ -6,6 +6,7 @@ import helmet from "helmet";
 import { NotFoundException } from "./exceptions/not-found.ts";
 import { ErrorCode } from "./exceptions/root.ts";
 import { ErrorMiddleware } from "./middlewares/errors.ts";
+import { billingController } from "./routes/billing-router.ts";
 import { mainRouter } from "./routes/main-router.ts";
 
 const app = express();
@@ -21,6 +22,9 @@ const corsMiddleware = cors({
 app.set("trust proxy", 1);
 app.use(helmet());
 app.use(corsMiddleware);
+
+// O webhook do Stripe precisa do corpo cru para conferir a assinatura: vem antes do express.json.
+app.post("/webhooks/stripe", express.raw({ type: "application/json" }), billingController.Webhook);
 
 app.use(express.json());
 app.use(urlencoded({ extended: true }));

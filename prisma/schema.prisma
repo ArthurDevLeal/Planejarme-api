@@ -29,6 +29,24 @@ model User {
   // RN09: arredondamento das notas exibidas (NEAREST, UP ou DOWN; sempre 2 casas)
   roundingMode         String  @default("NEAREST")
 
+  // Plano e cobrança (Stripe). O webhook é quem mantém estes campos; FREE é o padrão de todos.
+  plan               String    @default("FREE")
+  stripeCustomerId   String?   @unique
+  subscriptionStatus String?
+  currentPeriodEnd   DateTime?
+
+  // Afiliados. referralCode e affiliateStatus (ACTIVE | BLOCKED) só existem para quem entrou no programa.
+  referralCode         String?   @unique
+  referredById         String?
+  referredBy           User?     @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals            User[]    @relation("Referrals")
+  affiliateStatus      String?
+  affiliateBlockedAt   DateTime?
+  affiliateBlockReason String?
+  commissions          Commission[]     @relation("AffiliateCommissions")
+  referredCommissions  Commission[]     @relation("ReferredCommissions")
+  affiliateEvents      AffiliateEvent[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -41,6 +59,43 @@ model User {
   folders       Folder[]
   shareLinks    ShareLink[]
   shareInvites  ShareInvite[]
+}
+
+// Eventos do Stripe já processados: o mesmo evento entregue duas vezes não muda nada na segunda.
+model StripeEvent {
+  id        String   @id
+  type      String
+  createdAt DateTime @default(now())
+}
+
+// Uma comissão por fatura paga do indicado. status: PENDING | AVAILABLE | PAID | CANCELED | FROZEN.
+model Commission {
+  id              String    @id @default(uuid())
+  affiliateId     String
+  affiliate       User      @relation("AffiliateCommissions", fields: [affiliateId], references: [id], onDelete: Cascade)
+  referredUserId  String?
+  referredUser    User?     @relation("ReferredCommissions", fields: [referredUserId], references: [id], onDelete: SetNull)
+  stripeInvoiceId String    @unique
+  amountCents     Int
+  status          String    @default("PENDING")
+  availableAt     DateTime
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([affiliateId, status])
+}
+
+// Histórico do que o admin fez com um afiliado (bloqueio, desbloqueio, pagamento, cancelamento).
+model AffiliateEvent {
+  id          String   @id @default(uuid())
+  affiliateId String
+  affiliate   User     @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  action      String
+  reason      String?
+  adminEmail  String
+  createdAt   DateTime @default(now())
+
+  @@index([affiliateId])
 }
 
 model PasswordResetToken {

@@ -29,7 +29,9 @@ import { GetUsageService } from "../services/plan-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
-function withoutPasswordHash<T extends { passwordHash: string }>({ passwordHash: _, ...user }: T) {
+// Senha, vínculo com o Stripe, quem indicou e motivo de bloqueio nunca saem nas respostas de usuário.
+function withoutPasswordHash<T extends { passwordHash: string }>(row: T) {
+  const { passwordHash: _, stripeCustomerId: _c, referredById: _r, affiliateBlockReason: _b, affiliateBlockedAt: _a, ...user } = row as T & Record<string, unknown>;
   return user;
 }
 

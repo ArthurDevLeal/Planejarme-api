@@ -9,6 +9,8 @@ const CreateUserSchema = z.object({
   phone: optionalText,
   course: optionalText,
   institution: optionalText,
+  // Código de afiliado guardado no cookie `ref` do web; inválido ou bloqueado é ignorado em silêncio.
+  ref: optionalText,
 });
 
 const FindUserByIdSchema = z.object({

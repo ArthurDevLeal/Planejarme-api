@@ -94,7 +94,8 @@ test("compressão: PDF só é regravado com ganho de 5% ou mais; assinado e outr
   assert.equal(await makeThumbnail(broken, "quebrada.png"), null);
 });
 
-test("upload-url: recusa sem autenticação e arquivo acima do limite do plano", async () => {
+// O plano agora vem do banco (User.plan): sem banco este teste não roda.
+test("upload-url: recusa sem autenticação e arquivo acima do limite do plano", dbTest, async () => {
   assert.equal((await fetch(`${baseUrl}/materials/upload-url`, { method: "POST" })).status, 401);
   const token = jwt.sign({ id: randomUUID() }, process.env.JWT_SECRET || "test-secret", { expiresIn: "5m" });
   const response = await fetch(`${baseUrl}/materials/upload-url`, {

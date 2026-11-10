@@ -10,6 +10,7 @@ import { taskRouter } from "./task-router.ts";
 import { userRouter } from "./user-router.ts";
 
 import { semesterRouter } from "./semester-router.ts";
+import { adminRouter, affiliateRouter, billingRouter } from "./billing-router.ts";
 import { cronRouter } from "./cron-router.ts";
 import { trashRouter } from "./trash-router.ts";
 import { folderRouter } from "./folder-router.ts";
@@ -31,6 +32,9 @@ mainRouter.use("/trash", trashRouter);
 mainRouter.use("/folders", folderRouter);
 mainRouter.use("/shares", shareRouter);
 mainRouter.use("/public/shares", publicShareRouter);
+mainRouter.use("/billing", billingRouter);
+mainRouter.use("/affiliates", affiliateRouter);
+mainRouter.use("/admin", adminRouter);
 mainRouter.use("/cron", cronRouter);
 
 export { mainRouter };

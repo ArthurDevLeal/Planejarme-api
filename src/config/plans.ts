@@ -1,4 +1,6 @@
 // Única fonte dos limites por plano. Valores provisórios: ajuste aqui e em nenhum outro lugar.
+import { prisma } from "../../lib/prisma.ts";
+
 const MB = 1024 * 1024;
 
 export const PLANS = {
@@ -8,7 +10,8 @@ export const PLANS = {
 
 export type PlanId = keyof typeof PLANS;
 
-// A Fase 5 passa a ler User.plan; até lá todo usuário é FREE.
-export async function planOf(_userId: string): Promise<PlanId> {
-  return "FREE";
+/** O plano vem de User.plan, que o webhook do Stripe mantém. Qualquer valor desconhecido vale FREE. */
+export async function planOf(userId: string): Promise<PlanId> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+  return user?.plan === "PRO" ? "PRO" : "FREE";
 }

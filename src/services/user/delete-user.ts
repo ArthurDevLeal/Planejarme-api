@@ -3,14 +3,18 @@ import { prisma } from "../../../lib/prisma.ts";
 import { BadRequestsException } from "../../exceptions/bad-requests.ts";
 import { NotFoundException } from "../../exceptions/not-found.ts";
 import { ErrorCode } from "../../exceptions/root.ts";
+import { CancelSubscriptionsService } from "../billing-service.ts";
 import { ReleaseStorageObjects } from "../storage-service.ts";
 
 export async function DeleteUserService(userId: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true, stripeCustomerId: true } });
   if (!user) throw new NotFoundException("Usuário não encontrado.", ErrorCode.USER_NOT_FOUND);
   if (!(await compare(password, user.passwordHash))) {
     throw new BadRequestsException("A senha está incorreta. Confira e tente novamente.", ErrorCode.INVALID_DATA);
   }
+
+  // Antes de apagar: se o cancelamento falhar, a conta continua e a pessoa tenta de novo, em vez de seguir sendo cobrada.
+  if (user.stripeCustomerId) await CancelSubscriptionsService(user.stripeCustomerId);
 
   const ownedMaterials = { OR: [{ userId }, { discipline: { userId } }] };
   const files = await prisma.material.findMany({

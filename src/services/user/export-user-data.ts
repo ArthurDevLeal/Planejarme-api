@@ -3,7 +3,7 @@ import { prisma } from "../../../lib/prisma.ts";
 export async function ExportUserDataService(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    omit: { passwordHash: true },
+    omit: { passwordHash: true, stripeCustomerId: true, referredById: true, affiliateBlockReason: true, affiliateBlockedAt: true },
     include: {
       semesters: { orderBy: { startDate: "asc" } },
       disciplines: {

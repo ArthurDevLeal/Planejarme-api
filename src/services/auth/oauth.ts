@@ -1,6 +1,7 @@
 import { hash } from "bcrypt";
 import crypto from "node:crypto";
 import { prisma } from "../../../lib/prisma.ts";
+import { ResolveReferrerService } from "../affiliate-service.ts";
 
 export type OAuthProvider = "google" | "github";
 
@@ -97,7 +98,7 @@ export async function FetchOAuthProfileService(provider: OAuthProvider, code: st
   return { email: primary.email, name };
 }
 
-export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile) {
+export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile, ref?: string) {
   const existing = await prisma.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
     select: { id: true },
@@ -109,6 +110,7 @@ export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile
       email: email.toLowerCase(),
       name: name.slice(0, 100),
       passwordHash: await hash(crypto.randomBytes(32).toString("base64url"), 8),
+      referredById: await ResolveReferrerService(ref, email),
     },
     select: { id: true },
   });

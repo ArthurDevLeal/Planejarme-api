@@ -1,13 +1,14 @@
 import { NextFunction, Request, Response } from "express";
-import Stripe from "stripe";
+import crypto from "node:crypto";
 import z from "../schemas/zod.ts";
 import { prisma } from "../../lib/prisma.ts";
 import { adminEmails } from "../config/billing.ts";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { ForbiddenException } from "../exceptions/forbidden.ts";
 import { ErrorCode } from "../exceptions/root.ts";
+import { UnauthorizedException } from "../exceptions/unauthorized.ts";
 import { ValidationException } from "../exceptions/validation.ts";
-import { verifyWebhook } from "../lib/stripe.ts";
+import { verifyWebhook } from "../lib/abacatepay.ts";
 import {
   BlockAffiliateService,
   GetAffiliateService,
@@ -17,7 +18,7 @@ import {
   SettleCommissionService,
   UnblockAffiliateService,
 } from "../services/affiliate-service.ts";
-import { CreateCheckoutService, CreatePortalService, GetBillingService, HandleStripeEventService } from "../services/billing-service.ts";
+import { CancelSubscriptionService, CreateCheckoutService, GetBillingService, HandleAbacateEventService } from "../services/billing-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
@@ -44,20 +45,25 @@ export class BillingController {
     return sendSuccess(res, await CreateCheckoutService(req.userId, result.data.interval), "Checkout created", 201);
   });
 
-  Portal = ErrorHandler(async (req: Request, res: Response) => sendSuccess(res, await CreatePortalService(req.userId), "Portal created", 201));
+  Cancel = ErrorHandler(async (req: Request, res: Response) => sendSuccess(res, await CancelSubscriptionService(req.userId), "Subscription canceled"));
 
-  /** Corpo cru (express.raw em index.ts): a assinatura do Stripe é calculada sobre os bytes exatos. */
+  /** Corpo cru (express.raw em index.ts): o HMAC da Abacate Pay é calculado sobre os bytes exatos. */
   Webhook = ErrorHandler(async (req: Request, res: Response) => {
-    let event;
-    try {
-      event = verifyWebhook(req.body as Buffer, req.headers["stripe-signature"] as string | undefined);
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeSignatureVerificationError) {
-        throw new BadRequestsException("Assinatura do webhook inválida.", ErrorCode.INVALID_DATA);
-      }
-      throw error;
+    const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    // 4xx não é reenviado pela Abacate Pay: só para segredo errado ou corpo ilegível, que repetir não resolve.
+    if (!verifyWebhook(raw, req.query.webhookSecret, req.header("x-webhook-signature"))) {
+      throw new UnauthorizedException("Webhook inválido.", ErrorCode.UNAUTHORIZED);
     }
-    return sendSuccess(res, await HandleStripeEventService(event));
+    let payload: { id?: unknown; event?: unknown; devMode?: unknown; data?: unknown };
+    try {
+      payload = JSON.parse(raw.toString("utf8"));
+    } catch {
+      throw new BadRequestsException("Corpo do webhook inválido.", ErrorCode.INVALID_DATA);
+    }
+    if (typeof payload?.event !== "string") throw new BadRequestsException("Corpo do webhook inválido.", ErrorCode.INVALID_DATA);
+    // As retentativas trazem o mesmo id; sem id, o hash do corpo cumpre o mesmo papel na idempotência.
+    const id = typeof payload.id === "string" && payload.id ? payload.id : `body_${crypto.createHash("sha256").update(raw).digest("hex")}`;
+    return sendSuccess(res, await HandleAbacateEventService({ id, event: payload.event, devMode: payload.devMode === true, data: payload.data as never }));
   });
 }
 

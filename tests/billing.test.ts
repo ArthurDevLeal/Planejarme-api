@@ -4,21 +4,21 @@ import { after, before, test } from "node:test";
 import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import jwt from "jsonwebtoken";
-import Stripe from "stripe";
 import { prisma } from "../lib/prisma.ts";
 import { commissionCents } from "../src/config/billing.ts";
 import { PLANS } from "../src/config/plans.ts";
 import { normalizeEmail } from "../src/services/affiliate-service.ts";
-import { HandleStripeEventService, ReleaseCommissionsService } from "../src/services/billing-service.ts";
+import { signWebhookBody } from "../src/lib/abacatepay.ts";
+import { type AbacateEvent, CancelSubscriptionService, ExpireCanceledSubscriptionsService, HandleAbacateEventService, ReleaseCommissionsService } from "../src/services/billing-service.ts";
 
 const dbTest = { skip: process.env.RUN_DB_TESTS !== "1" };
-const SECRET = "whsec_teste_local";
+const SECRET = "segredo_teste_local";
 let server: Server;
 let baseUrl = "";
 
 before(async () => {
-  // A assinatura do webhook só depende deste segredo; nenhuma chave do Stripe é usada nos testes.
-  process.env.STRIPE_WEBHOOK_SECRET = SECRET;
+  // O webhook só depende deste segredo e da chave pública do HMAC; nenhuma chamada à Abacate Pay sai dos testes.
+  process.env.ABACATEPAY_WEBHOOK_SECRET = SECRET;
   process.env.VERCEL = "1"; // impede o app.listen na porta fixa de src/index.ts
   const { default: app } = await import("../src/index.ts");
   server = app.listen(0, "127.0.0.1");
@@ -32,12 +32,15 @@ after(async () => {
   if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
 });
 
-const event = (type: string, object: Record<string, unknown>, id = `evt_${randomUUID()}`) => ({ id, object: "event", type, data: { object } });
+const event = (type: string, data: Record<string, unknown>, id = `log_${randomUUID()}`) => ({ id, event: type, apiVersion: 2, devMode: true, data });
 
-async function deliver(payload: object, signature?: string) {
+async function deliver(payload: object, { secret = SECRET, signature }: { secret?: string; signature?: string } = {}) {
   const body = JSON.stringify(payload);
-  const header = signature ?? Stripe.webhooks.generateTestHeaderString({ payload: body, secret: SECRET });
-  const response = await fetch(`${baseUrl}/webhooks/stripe`, { method: "POST", headers: { "Content-Type": "application/json", "stripe-signature": header }, body });
+  const response = await fetch(`${baseUrl}/webhooks/abacatepay?webhookSecret=${encodeURIComponent(secret)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Webhook-Signature": signature ?? signWebhookBody(body) },
+    body,
+  });
   return { status: response.status, body: await response.json() };
 }
 
@@ -53,15 +56,25 @@ test("auto-indicação: maiúsculas e +alias são o mesmo e-mail", () => {
   assert.notEqual(normalizeEmail("ana@example.com"), normalizeEmail("ana.b@example.com"));
 });
 
-test("webhook: assinatura inválida ou ausente é recusada antes de tocar no banco", async () => {
-  const forged = await deliver(event("customer.subscription.deleted", { id: "sub_x", customer: "cus_x" }), "t=1,v1=deadbeef");
-  assert.equal(forged.status, 400);
-  assert.match(forged.body.message, /Assinatura do webhook inválida/);
-  const body = JSON.stringify(event("invoice.paid", {}));
-  const other = Stripe.webhooks.generateTestHeaderString({ payload: body, secret: "whsec_outro_segredo" });
-  assert.equal((await deliver(JSON.parse(body), other)).status, 400);
-  const missing = await fetch(`${baseUrl}/webhooks/stripe`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-  assert.equal(missing.status, 400);
+test("webhook: segredo ou HMAC errados são recusados antes de tocar no banco", async () => {
+  const payload = event("subscription.cancelled", { subscription: { id: "subs_x" } });
+  const wrongSecret = await deliver(payload, { secret: "outro-segredo" });
+  assert.equal(wrongSecret.status, 401);
+  assert.match(wrongSecret.body.message, /Webhook inválido/);
+  assert.equal((await deliver(payload, { signature: signWebhookBody("outro corpo") })).status, 401, "HMAC de outro corpo");
+  const body = JSON.stringify(payload);
+  const noSecret = await fetch(`${baseUrl}/webhooks/abacatepay`, { method: "POST", headers: { "Content-Type": "application/json", "X-Webhook-Signature": signWebhookBody(body) }, body });
+  assert.equal(noSecret.status, 401, "sem webhookSecret na URL");
+  const noSignature = await fetch(`${baseUrl}/webhooks/abacatepay?webhookSecret=${SECRET}`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+  assert.equal(noSignature.status, 401, "sem X-Webhook-Signature");
+  const garbage = "não é json";
+  const unreadable = await fetch(`${baseUrl}/webhooks/abacatepay?webhookSecret=${SECRET}`, { method: "POST", headers: { "Content-Type": "text/plain", "X-Webhook-Signature": signWebhookBody(garbage) }, body: garbage });
+  assert.equal(unreadable.status, 400, "corpo autêntico mas ilegível");
+});
+
+test("webhook: evento autêntico de assinatura desconhecida é aceito e não muda nada", dbTest, async () => {
+  const response = await deliver(event("subscription.payment_failed", { subscription: { id: `subs_desconhecida_${randomUUID()}` } }));
+  assert.deepEqual([response.status, response.body.data], [200, { duplicate: false }]);
 });
 
 test("planos públicos: preços, limites e regras de afiliado sem login", async () => {
@@ -75,7 +88,7 @@ test("planos públicos: preços, limites e regras de afiliado sem login", async 
 });
 
 test("rotas de cobrança, afiliados e admin exigem login", async () => {
-  for (const [method, path] of [["GET", "/billing/me"], ["POST", "/billing/checkout"], ["POST", "/billing/portal"], ["GET", "/affiliates/me"], ["GET", "/admin/affiliates"]]) {
+  for (const [method, path] of [["GET", "/billing/me"], ["POST", "/billing/checkout"], ["POST", "/billing/cancel"], ["GET", "/affiliates/me"], ["GET", "/admin/affiliates"]]) {
     assert.equal((await fetch(baseUrl + path, { method })).status, 401, path);
   }
 });
@@ -103,7 +116,7 @@ test("assinatura, indicação, comissão, reembolso e bloqueio do afiliado", dbT
     const response = await call("/users", "POST", { name: "Pessoa Indicada", email, password: "senha-de-teste", ref });
     assert.equal(response.status, 201, JSON.stringify(response.body));
     created.push(response.body.data.id);
-    for (const hidden of ["passwordHash", "stripeCustomerId", "referredById", "affiliateBlockReason"]) assert.equal(hidden in response.body.data, false, hidden);
+    for (const hidden of ["passwordHash", "abacateCustomerId", "abacateSubscriptionId", "referredById", "affiliateBlockReason"]) assert.equal(hidden in response.body.data, false, hidden);
     return prisma.user.findUniqueOrThrow({ where: { id: response.body.data.id } });
   }
   const commissionsOf = () => prisma.commission.findMany({ where: { affiliateId: affiliate.id }, orderBy: { createdAt: "asc" } });
@@ -124,52 +137,69 @@ test("assinatura, indicação, comissão, reembolso e bloqueio do afiliado", dbT
     assert.equal((await signUp(`afiliado-${tag}+promo@EXAMPLE.invalid`, joined.code)).referredById, null, "mesmo e-mail com +alias");
     assert.equal((await signUp(mail("sem-codigo"), "ZZZZZZZZ")).referredById, null);
 
-    // Upgrade: checkout concluído liga o cliente; a assinatura ativa vira PRO.
-    const customer = `cus_${tag}`;
-    const periodEnd = Math.floor(Date.now() / 1000) + 30 * 86_400;
-    const subscription = (status: string) => ({ id: `sub_${tag}`, customer, status, metadata: { userId: referred.id }, items: { data: [{ current_period_end: periodEnd }] } });
-    assert.equal((await deliver(event("checkout.session.completed", { id: "cs_1", mode: "subscription", client_reference_id: referred.id, customer }))).status, 200);
-    const activated = event("customer.subscription.created", subscription("active"));
+    // Upgrade: a assinatura paga vira PRO até o fim do período que a API informa e fica ligada à conta pelo externalId do checkout.
+    // As consultas à Abacate Pay (fim do período, externalId do checkout) são trocadas por estas, sem rede.
+    const DAY = 86_400_000;
+    const customer = `cust_${tag}`;
+    const subscriptionId = `subs_${tag}`;
+    let apiPeriodEnd: Date | null = new Date(Date.now() + 30 * DAY);
+    const checkoutOwners = new Map<string, string>();
+    const deps = { periodEnd: async () => apiPeriodEnd, checkoutExternalId: async (id: string) => checkoutOwners.get(id) ?? null };
+    const deliver = async (payload: object) => ({ body: { data: await HandleAbacateEventService(payload as AbacateEvent, deps) } });
+    const charge = (n: number, amount = 1490, subscription = subscriptionId) => ({
+      subscription: { id: subscription, amount, method: "PIX", status: "ACTIVE", frequency: "MONTHLY" },
+      customer: { id: customer, name: "Pessoa Indicada", email: "pessoa@example.invalid", taxId: "123.***.***-**" },
+      payment: { id: `char_${n}_${tag}`, amount, paidAmount: amount, status: "PAID", methods: ["PIX"] },
+      checkout: { id: `bill_${n}_${tag}`, externalId: n === 1 ? referred.id : null, customerId: customer, paidAmount: amount, frequency: "SUBSCRIPTION" },
+    });
+    const activated = event("subscription.completed", charge(1));
     assert.deepEqual((await deliver(activated)).body.data, { duplicate: false });
     let user = await prisma.user.findUniqueOrThrow({ where: { id: referred.id } });
-    assert.deepEqual([user.plan, user.subscriptionStatus, user.stripeCustomerId], ["PRO", "active", customer]);
-    assert.equal(user.currentPeriodEnd?.getTime(), periodEnd * 1000);
+    assert.deepEqual([user.plan, user.subscriptionStatus, user.abacateSubscriptionId], ["PRO", "ACTIVE", subscriptionId]);
+    assert.equal(user.abacateCustomerId, null, "o cliente do evento não é gravado: o checkout pode trocá-lo");
+    const firstEnd = user.currentPeriodEnd!.getTime();
+    assert.equal(firstEnd, apiPeriodEnd!.getTime(), "fim do período vem da API");
     const billing = (await call("/billing/me", "GET", undefined, referred.id)).body.data;
     assert.deepEqual([billing.plan, billing.isAdmin, billing.prices.monthlyCents], ["PRO", false, 1490]);
+    assert.ok(Array.isArray(billing.paymentMethods) && billing.paymentMethods.length > 0);
     assert.equal((await call("/users/me/usage", "GET", undefined, referred.id)).body.data.limitBytes, PLANS.PRO.storageBytes);
 
-    // Evento repetido: o Stripe reentrega, nada muda na segunda vez.
+    // Evento repetido: a Abacate Pay reentrega com o mesmo id, nada muda na segunda vez.
     await prisma.user.update({ where: { id: referred.id }, data: { subscriptionStatus: "marcador" } });
     assert.deepEqual((await deliver(activated)).body.data, { duplicate: true });
     assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: referred.id } })).subscriptionStatus, "marcador");
+    await prisma.user.update({ where: { id: referred.id }, data: { subscriptionStatus: "ACTIVE" } });
 
-    // Comissão recorrente: uma por fatura paga, pendente por 30 dias.
-    const invoice = (id: string, amount = 1490) => ({ id, customer, amount_paid: amount });
-    await deliver(event("invoice.paid", invoice(`in_1_${tag}`)));
-    await deliver(event("invoice.paid", invoice(`in_1_${tag}`)));
+    // Comissão recorrente: uma por pagamento, pendente por 30 dias.
     let commissions = await commissionsOf();
-    assert.equal(commissions.length, 1, "mesma fatura em outro evento não duplica");
-    assert.deepEqual([commissions[0].amountCents, commissions[0].status, commissions[0].referredUserId], [447, "PENDING", referred.id]);
+    assert.equal(commissions.length, 1);
+    assert.deepEqual([commissions[0].amountCents, commissions[0].status, commissions[0].referredUserId, commissions[0].paymentId], [447, "PENDING", referred.id, `char_1_${tag}`]);
     const hold = commissions[0].availableAt.getTime() - Date.now();
-    assert.ok(hold > 29 * 86_400_000 && hold <= 30 * 86_400_000);
-    await deliver(event("invoice.paid", invoice(`in_0_${tag}`, 0)));
-    assert.equal((await commissionsOf()).length, 1, "fatura de valor zero não gera comissão");
+    assert.ok(hold > 29 * DAY && hold <= 30 * DAY);
+
+    // Renovação sem a data da API: um ciclo contado do fim do período atual; pagamento de valor zero não gera comissão.
+    apiPeriodEnd = null;
+    await deliver(event("subscription.renewed", charge(0, 0)));
+    user = await prisma.user.findUniqueOrThrow({ where: { id: referred.id } });
+    const extended = user.currentPeriodEnd!.getTime() - firstEnd;
+    assert.ok(extended >= 28 * DAY && extended <= 31 * DAY, "renovação soma um mês ao fim do período, não a hoje");
+    assert.equal((await commissionsOf()).length, 1, "pagamento de valor zero não gera comissão");
 
     // Carência: antes dos 30 dias continua pendente; depois fica disponível.
-    await ReleaseCommissionsService(new Date(Date.now() + 29 * 86_400_000));
+    await ReleaseCommissionsService(new Date(Date.now() + 29 * DAY));
     assert.equal((await commissionsOf())[0].status, "PENDING");
-    await ReleaseCommissionsService(new Date(Date.now() + 31 * 86_400_000));
+    await ReleaseCommissionsService(new Date(Date.now() + 31 * DAY));
     assert.equal((await commissionsOf())[0].status, "AVAILABLE");
 
-    // Reembolso dentro da carência cancela a comissão daquela fatura, e só ela.
-    await deliver(event("invoice.paid", invoice(`in_2_${tag}`)));
-    const refund = event("charge.refunded", { id: "ch_1", payment_intent: `pi_2_${tag}` });
-    await HandleStripeEventService(refund as unknown as Stripe.Event, { invoiceForPaymentIntent: async (paymentIntent) => (paymentIntent === `pi_2_${tag}` ? `in_2_${tag}` : null) });
+    // Reembolso dentro da carência cancela a comissão daquele pagamento, e só ela. Assinatura ativa não muda aqui.
+    await deliver(event("subscription.renewed", charge(2)));
+    await deliver(event("checkout.refunded", { checkout: { id: `bill_2_${tag}`, customerId: customer, frequency: "SUBSCRIPTION" }, customer: { id: customer }, reason: "requested_by_customer" }));
     commissions = await commissionsOf();
     assert.deepEqual(commissions.map((c) => c.status), ["AVAILABLE", "CANCELED"]);
+    assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: referred.id } })).plan, "PRO", "o rebaixamento vem no subscription.cancelled");
 
     // Painel do afiliado.
-    await deliver(event("invoice.paid", invoice(`in_3_${tag}`)));
+    await deliver(event("subscription.renewed", charge(3)));
     const panel = (await call("/affiliates/me", "GET", undefined, affiliate.id)).body.data;
     assert.deepEqual(panel.totals, { AVAILABLE: 447, CANCELED: 447, PENDING: 447 });
     assert.deepEqual(panel.referrals.map((r: { name: string; plan: string }) => [r.name, r.plan]), [["Pessoa", "PRO"]]);
@@ -187,10 +217,10 @@ test("assinatura, indicação, comissão, reembolso e bloqueio do afiliado", dbT
     assert.deepEqual((await commissionsOf()).map((c) => c.status), ["FROZEN", "CANCELED", "FROZEN"]);
     assert.deepEqual((await call("/affiliates/me", "GET", undefined, affiliate.id)).body.data, { status: "BLOCKED", commissionPct: panel.commissionPct, holdDays: 30 });
     assert.equal((await signUp(mail("depois-do-bloqueio"), joined.code)).referredById, null);
-    await deliver(event("invoice.paid", invoice(`in_4_${tag}`)));
+    await deliver(event("subscription.renewed", charge(4)));
     assert.equal((await commissionsOf()).length, 3);
     assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: referred.id } })).plan, "PRO", "a assinatura do indicado segue normal");
-    await ReleaseCommissionsService(new Date(Date.now() + 90 * 86_400_000));
+    await ReleaseCommissionsService(new Date(Date.now() + 90 * DAY));
     assert.deepEqual((await commissionsOf()).map((c) => c.status), ["FROZEN", "CANCELED", "FROZEN"], "congelada não é liberada pelo cron");
 
     // Admin decide: paga uma congelada; a outra volta ao normal quando o bloqueio é desfeito.
@@ -205,16 +235,47 @@ test("assinatura, indicação, comissão, reembolso e bloqueio do afiliado", dbT
     assert.deepEqual([history[0].reason, history[0].adminEmail], ["Suspeita de fraude", admin.email]);
     assert.equal((await call("/admin/commissions?status=PAID", "GET", undefined, admin.id)).body.data.some((c: { id: string }) => c.id === after[0].id), true);
 
-    // Downgrade: assinatura encerrada volta para FREE, sem apagar nada.
-    await deliver(event("customer.subscription.updated", subscription("past_due")));
-    assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: referred.id } })).plan, "PRO", "cobrança em nova tentativa mantém o acesso");
-    await deliver(event("customer.subscription.deleted", subscription("canceled")));
+    // Cobrança falhou: o Pro continua enquanto a Abacate Pay tenta de novo.
+    await deliver(event("subscription.payment_failed", { subscription: { id: subscriptionId, status: "ACTIVE" }, retryNumber: 1 }));
     user = await prisma.user.findUniqueOrThrow({ where: { id: referred.id } });
-    assert.deepEqual([user.plan, user.subscriptionStatus], ["FREE", "canceled"]);
+    assert.deepEqual([user.plan, user.subscriptionStatus], ["PRO", "PAST_DUE"]);
+
+    // Evento de outra assinatura (antiga) da mesma pessoa não mexe na atual.
+    await deliver(event("subscription.cancelled", { subscription: { id: `subs_antiga_${tag}`, status: "CANCELLED" }, customer: { id: customer } }));
+    assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: referred.id } })).plan, "PRO");
+
+    // Quem cancelou por aqui fica com o Pro até o fim do período pago; o cron rebaixa depois, sem apagar nada.
+    await prisma.user.update({ where: { id: referred.id }, data: { subscriptionStatus: "CANCELED" } }); // o que CancelSubscriptionService grava antes de chamar a API
+    await deliver(event("subscription.cancelled", { subscription: { id: subscriptionId, status: "CANCELLED", cancelPolicy: "NOW" }, customer: { id: customer } }));
+    user = await prisma.user.findUniqueOrThrow({ where: { id: referred.id } });
+    assert.deepEqual([user.plan, user.subscriptionStatus], ["PRO", "CANCELED"]);
+    await assert.rejects(CancelSubscriptionService(referred.id), /não tem uma assinatura ativa/, "cancelar de novo não chama a API");
+    assert.deepEqual(await ExpireCanceledSubscriptionsService(new Date(user.currentPeriodEnd!.getTime() - 1000)), { expired: 0 });
+    await ExpireCanceledSubscriptionsService(new Date(user.currentPeriodEnd!.getTime() + 1000));
+    assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: referred.id } })).plan, "FREE");
     assert.equal((await call("/users/me/usage", "GET", undefined, referred.id)).body.data.limitBytes, PLANS.FREE.storageBytes);
+
+    // Cancelamento que não veio daqui (tentativas esgotadas, dashboard) corta na hora.
+    await prisma.user.update({ where: { id: referred.id }, data: { plan: "PRO", subscriptionStatus: "PAST_DUE" } });
+    await deliver(event("subscription.cancelled", { subscription: { id: subscriptionId, status: "CANCELLED", cancelledDueTo: "max_payment_retries_exceeded" }, customer: { id: customer } }));
+    user = await prisma.user.findUniqueOrThrow({ where: { id: referred.id } });
+    assert.deepEqual([user.plan, user.subscriptionStatus], ["FREE", "CANCELED"]);
+
+    // Outra conta paga com o mesmo CPF (mesmo cliente na Abacate Pay) e o evento vem sem externalId:
+    // a conta certa sai do checkout consultado na API, e a primeira conta não é tocada.
+    const other = await signUp(mail("mesmo-cpf"));
+    checkoutOwners.set(`bill_9_${tag}`, other.id);
+    apiPeriodEnd = new Date(Date.now() + 365 * DAY);
+    await deliver(event("subscription.completed", charge(9, 11900, `subs_ext_${tag}`)));
+    const linked = await prisma.user.findUniqueOrThrow({ where: { id: other.id } });
+    assert.deepEqual([linked.plan, linked.abacateSubscriptionId, linked.currentPeriodEnd?.getTime()], ["PRO", `subs_ext_${tag}`, apiPeriodEnd.getTime()]);
+    assert.deepEqual((await prisma.user.findUniqueOrThrow({ where: { id: referred.id } })).plan, "FREE", "a primeira conta continua como estava");
+
+    // Pagamento sem conta correspondente falha (5xx): a Abacate Pay reenvia e o erro fica no log.
+    await assert.rejects(deliver(event("subscription.completed", charge(8, 1490, `subs_orfa_${tag}`))), /sem conta correspondente/);
   } finally {
     process.env.ADMIN_EMAILS = adminsBefore;
-    await prisma.stripeEvent.deleteMany({ where: { createdAt: { gte: new Date(Date.now() - 10 * 60_000) }, id: { startsWith: "evt_" } } });
+    await prisma.billingEvent.deleteMany({ where: { createdAt: { gte: new Date(Date.now() - 10 * 60_000) }, id: { startsWith: "log_" } } });
     await prisma.user.deleteMany({ where: { id: { in: created } } });
   }
 });

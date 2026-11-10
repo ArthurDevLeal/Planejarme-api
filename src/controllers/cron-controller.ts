@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { ErrorCode } from "../exceptions/root.ts";
 import { UnauthorizedException } from "../exceptions/unauthorized.ts";
 import { GenerateDueNotificationsService } from "../services/notification-generator-service.ts";
-import { ReleaseCommissionsService } from "../services/billing-service.ts";
+import { ExpireCanceledSubscriptionsService, ReleaseCommissionsService } from "../services/billing-service.ts";
 import { RetryStorageDeletionsService, SweepOrphanObjectsService } from "../services/storage-service.ts";
 import { PurgeExpiredTrashService } from "../services/trash-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
@@ -28,9 +28,10 @@ export class CronController {
     const retried = await RetryStorageDeletionsService();
     const swept = await SweepOrphanObjectsService();
     const commissions = await ReleaseCommissionsService();
+    const subscriptions = await ExpireCanceledSubscriptionsService();
     return sendSuccess(
       res,
-      { notificationsCreated: notifications.created, trashPurged: purged, storageRetried: retried, storageSwept: swept, commissions },
+      { notificationsCreated: notifications.created, trashPurged: purged, storageRetried: retried, storageSwept: swept, commissions, subscriptions },
       "Daily jobs finished",
     );
   });

@@ -100,7 +100,7 @@ export function ListCommissionsService(status?: string) {
   return prisma.commission.findMany({
     where: status ? { status } : {},
     select: {
-      id: true, amountCents: true, status: true, availableAt: true, paidAt: true, createdAt: true, stripeInvoiceId: true,
+      id: true, amountCents: true, status: true, availableAt: true, paidAt: true, createdAt: true, paymentId: true,
       affiliate: { select: { id: true, name: true, email: true } },
       referredUser: { select: { name: true, email: true } },
     },

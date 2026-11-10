@@ -29,11 +29,13 @@ model User {
   // RN09: arredondamento das notas exibidas (NEAREST, UP ou DOWN; sempre 2 casas)
   roundingMode         String  @default("NEAREST")
 
-  // Plano e cobrança (Stripe). O webhook é quem mantém estes campos; FREE é o padrão de todos.
-  plan               String    @default("FREE")
-  stripeCustomerId   String?   @unique
-  subscriptionStatus String?
-  currentPeriodEnd   DateTime?
+  // Plano e cobrança (Abacate Pay). O webhook é quem mantém estes campos; FREE é o padrão de todos.
+  // subscriptionStatus: ACTIVE | PAST_DUE | CANCELED. currentPeriodEnd: até quando o Pro está pago.
+  plan                  String    @default("FREE")
+  abacateCustomerId     String?   @unique
+  abacateSubscriptionId String?   @unique
+  subscriptionStatus    String?
+  currentPeriodEnd      DateTime?
 
   // Afiliados. referralCode e affiliateStatus (ACTIVE | BLOCKED) só existem para quem entrou no programa.
   referralCode         String?   @unique
@@ -61,21 +63,22 @@ model User {
   shareInvites  ShareInvite[]
 }
 
-// Eventos do Stripe já processados: o mesmo evento entregue duas vezes não muda nada na segunda.
-model StripeEvent {
+// Eventos do webhook da Abacate Pay já processados: o mesmo evento entregue duas vezes não muda nada na segunda.
+model BillingEvent {
   id        String   @id
   type      String
   createdAt DateTime @default(now())
 }
 
-// Uma comissão por fatura paga do indicado. status: PENDING | AVAILABLE | PAID | CANCELED | FROZEN.
+// Uma comissão por pagamento do indicado (paymentId); checkoutId liga o reembolso à comissão. status: PENDING | AVAILABLE | PAID | CANCELED | FROZEN.
 model Commission {
   id              String    @id @default(uuid())
   affiliateId     String
   affiliate       User      @relation("AffiliateCommissions", fields: [affiliateId], references: [id], onDelete: Cascade)
   referredUserId  String?
   referredUser    User?     @relation("ReferredCommissions", fields: [referredUserId], references: [id], onDelete: SetNull)
-  stripeInvoiceId String    @unique
+  paymentId       String    @unique
+  checkoutId      String?
   amountCents     Int
   status          String    @default("PENDING")
   availableAt     DateTime
@@ -83,6 +86,7 @@ model Commission {
   createdAt       DateTime  @default(now())
 
   @@index([affiliateId, status])
+  @@index([checkoutId])
 }
 
 // Histórico do que o admin fez com um afiliado (bloqueio, desbloqueio, pagamento, cancelamento).

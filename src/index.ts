@@ -23,8 +23,8 @@ app.set("trust proxy", 1);
 app.use(helmet());
 app.use(corsMiddleware);
 
-// O webhook do Stripe precisa do corpo cru para conferir a assinatura: vem antes do express.json.
-app.post("/webhooks/stripe", express.raw({ type: "application/json" }), billingController.Webhook);
+// O webhook da Abacate Pay precisa do corpo cru para conferir o HMAC: vem antes do express.json. Qualquer content-type vira Buffer.
+app.post("/webhooks/abacatepay", express.raw({ type: () => true, limit: "1mb" }), billingController.Webhook);
 
 app.use(express.json());
 app.use(urlencoded({ extended: true }));

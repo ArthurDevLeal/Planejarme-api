@@ -10,7 +10,7 @@ const billingRouter = Router();
 billingRouter.use(AuthMiddleware);
 billingRouter.get("/me", billing.Me);
 billingRouter.post("/checkout", RateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), billing.Checkout);
-billingRouter.post("/portal", RateLimit({ windowMs: 15 * 60 * 1000, max: 20 }), billing.Portal);
+billingRouter.post("/cancel", RateLimit({ windowMs: 15 * 60 * 1000, max: 10 }), billing.Cancel);
 
 const affiliateRouter = Router();
 affiliateRouter.use(AuthMiddleware);

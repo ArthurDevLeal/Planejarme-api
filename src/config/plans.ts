@@ -10,7 +10,7 @@ export const PLANS = {
 
 export type PlanId = keyof typeof PLANS;
 
-/** O plano vem de User.plan, que o webhook do Stripe mantém. Qualquer valor desconhecido vale FREE. */
+/** O plano vem de User.plan, que o webhook da Abacate Pay mantém. Qualquer valor desconhecido vale FREE. */
 export async function planOf(userId: string): Promise<PlanId> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
   return user?.plan === "PRO" ? "PRO" : "FREE";

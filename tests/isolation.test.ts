@@ -65,7 +65,7 @@ test("usuário não acessa inbox, notificações nem materiais de outro", { skip
     const [owner, stranger] = await Promise.all(
       ["Dono", "Estranho"].map((name) =>
         prisma.user.create({
-          data: { name: `${name} temporário`, email: `isolation-${randomUUID()}@example.invalid`, passwordHash: "x" },
+          data: { name: `${name} temporário`, email: `isolation-${randomUUID()}@example.invalid`, passwordHash: "x", plan: "PRO" },
         }),
       ),
     );

@@ -95,30 +95,32 @@ test("compressão: PDF só é regravado com ganho de 5% ou mais; assinado e outr
 });
 
 // O plano agora vem do banco (User.plan): sem banco este teste não roda.
-test("upload-url: recusa sem autenticação e arquivo acima do limite do plano", dbTest, async () => {
+test("upload-url: recusa sem autenticação e conta no gratuito (arquivos são do Pro)", dbTest, async () => {
   assert.equal((await fetch(`${baseUrl}/materials/upload-url`, { method: "POST" })).status, 401);
   const token = jwt.sign({ id: randomUUID() }, process.env.JWT_SECRET || "test-secret", { expiresIn: "5m" });
   const response = await fetch(`${baseUrl}/materials/upload-url`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ fileName: "apostila.pdf", sizeBytes: PLANS.FREE.maxFileBytes + 1 }),
+    body: JSON.stringify({ fileName: "apostila.pdf", sizeBytes: 10 }),
   });
   assert.equal(response.status, 403);
   const body = await response.json();
   assert.equal(body.errorCode, "PLAN_LIMIT_REACHED");
-  assert.match(body.message, /upgrade/i);
+  assert.match(body.message, /plano Pro/);
+  // Ler continua livre no gratuito.
+  assert.equal((await fetch(`${baseUrl}/materials/user/me`, { headers: { Authorization: `Bearer ${token}` } })).status, 200);
 });
 
 test("armazenamento: envio, dedup, contagem de referências, cota, limite de disciplinas, lixeira da disciplina e limpeza", dbTest, async () => {
   const [owner, stranger] = await Promise.all(
     ["Dono", "Outro"].map((name) =>
-      prisma.user.create({ data: { name: `${name} storage`, email: `storage-${randomUUID()}@example.invalid`, passwordHash: "x" } }),
+      prisma.user.create({ data: { name: `${name} storage`, email: `storage-${randomUUID()}@example.invalid`, passwordHash: "x", plan: "PRO" } }),
     ),
   );
   const tokenFor = (id: string) => jwt.sign({ id }, process.env.JWT_SECRET || "test-secret", { expiresIn: "5m" });
   const bucket = supabase.storage.from(SUPABASE_STORAGE_BUCKET);
   const exists = async (path: string) => !(await bucket.info(path)).error;
-  const limits = { ...PLANS.FREE };
+  const limits = { ...PLANS.PRO };
 
   async function call(path: string, method = "GET", input?: unknown, as = owner.id) {
     const response = await fetch(baseUrl + path, {
@@ -165,7 +167,7 @@ test("armazenamento: envio, dedup, contagem de referências, cota, limite de dis
 
     // Dedup: mesmo arquivo, mesmo usuário → mesma linha de Storage, nenhum byte novo na cota.
     const usageBefore = (await call("/users/me/usage")).body.data;
-    assert.equal(usageBefore.plan, "FREE");
+    assert.equal(usageBefore.plan, "PRO");
     assert.equal(usageBefore.usedBytes, a.sizeBytes + a.thumbnailBytes);
     assert.equal(usageBefore.savedBytes, photo.length - a.sizeBytes);
     const second = await send(photo, "cópia.png");
@@ -197,27 +199,27 @@ test("armazenamento: envio, dedup, contagem de referências, cota, limite de dis
     // Cota: quem está no limite não envia, e nada do que já tem é apagado.
     const kept = await send(Buffer.from("anotações da aula"), "notas.txt");
     assert.equal(kept.status, 201);
-    PLANS.FREE.storageBytes = 10;
+    PLANS.PRO.storageBytes = 10;
     const blocked = await call("/materials/upload-url", "POST", { fileName: "mais.txt", sizeBytes: 5 });
     assert.equal(blocked.status, 403);
     assert.equal(blocked.body.errorCode, "PLAN_LIMIT_REACHED");
     assert.match(blocked.body.message, /limite de .* de armazenamento/);
     assert.ok(await prisma.material.findUnique({ where: { id: kept.body.data.id } }));
     // Com espaço para começar, mas não para o arquivo final: o envio é desfeito no Storage.
-    PLANS.FREE.storageBytes = kept.body.data.sizeBytes + 5;
+    PLANS.PRO.storageBytes = kept.body.data.sizeBytes + 5;
     const tooBig = await send(Buffer.from("um texto que não cabe no que sobrou"), "grande.txt");
     assert.equal(tooBig.status, 403);
     assert.equal((await bucket.list(owner.id)).data!.length, 1);
-    PLANS.FREE.storageBytes = limits.storageBytes;
+    PLANS.PRO.storageBytes = limits.storageBytes;
 
     // Limite de disciplinas por semestre.
-    PLANS.FREE.maxDisciplinesPerSemester = 1;
+    PLANS.PRO.maxDisciplinesPerSemester = 1;
     const discipline = await call("/disciplines", "POST", { name: "Física", workloadHours: 60 });
     assert.equal(discipline.status, 201);
     const extra = await call("/disciplines", "POST", { name: "Cálculo", workloadHours: 60 });
     assert.equal(extra.status, 403);
     assert.equal(extra.body.errorCode, "PLAN_LIMIT_REACHED");
-    PLANS.FREE.maxDisciplinesPerSemester = limits.maxDisciplinesPerSemester;
+    PLANS.PRO.maxDisciplinesPerSemester = limits.maxDisciplinesPerSemester;
 
     // Apagar a disciplina manda materiais e pastas para a lixeira.
     const disciplineId = discipline.body.data.id;
@@ -264,7 +266,7 @@ test("armazenamento: envio, dedup, contagem de referências, cota, limite de dis
     assert.equal(await prisma.storageDeletion.findUnique({ where: { path: stuck } }), null);
     assert.equal(await exists(stuck), false);
   } finally {
-    Object.assign(PLANS.FREE, limits);
+    Object.assign(PLANS.PRO, limits);
     const paths = [owner.id, stranger.id].map(async (id) => ((await bucket.list(id)).data ?? []).map((entry) => `${id}/${entry.name}`));
     const leftover = (await Promise.all(paths)).flat();
     if (leftover.length > 0) await bucket.remove(leftover);

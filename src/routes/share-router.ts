@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { ShareController } from "../controllers/share-controller.ts";
 import { AuthMiddleware } from "../middlewares/auth.ts";
+import { ProOnlyWrites } from "../middlewares/pro-only.ts";
 import { RateLimit } from "../middlewares/rate-limit.ts";
 
 const controller = new ShareController();
 
 const shareRouter = Router();
-shareRouter.use(AuthMiddleware);
+shareRouter.use(AuthMiddleware, ProOnlyWrites);
 shareRouter.get("/", controller.GetMine);
 shareRouter.put("/links", controller.UpsertLink);
 shareRouter.delete("/links/:id", controller.RevokeLink);

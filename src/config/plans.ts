@@ -4,7 +4,8 @@ import { prisma } from "../../lib/prisma.ts";
 const MB = 1024 * 1024;
 
 export const PLANS = {
-  FREE: { storageBytes: 200 * MB, maxFileBytes: 10 * MB, maxDisciplinesPerSemester: 5 as number | null },
+  // Arquivos são só do Pro (ProOnlyWrites); zero aqui faz as telas não prometerem espaço no gratuito.
+  FREE: { storageBytes: 0, maxFileBytes: 0, maxDisciplinesPerSemester: 5 as number | null },
   PRO: { storageBytes: 5 * 1024 * MB, maxFileBytes: 50 * MB, maxDisciplinesPerSemester: null as number | null },
 };
 

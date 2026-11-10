@@ -97,7 +97,8 @@ test("validação expõe campo e restrição em português, sem ecoar dados", ()
   assert.deepEqual(Object.keys(details[0]), ["field", "code", "message"]);
 });
 
-for (const endpoint of ["/auth/signin", "/users", "/disciplines", "/evaluations", "/tasks", "/materials", "/schedules", "/inbox-items", "/notifications", "/semesters"]) {
+// /materials e /inbox-items ficam fora: são do Pro e a conta "test-user" não existe (ver storage.test).
+for (const endpoint of ["/auth/signin", "/users", "/disciplines", "/evaluations", "/tasks", "/schedules", "/notifications", "/semesters"]) {
   test(`POST ${endpoint}: rota real retorna detalhes de validação`, async () => {
     const response = await fetch(`${baseUrl}${endpoint}`, {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt.sign({ id: "test-user" }, testSecret, { expiresIn: "1m" })}` }, body: "{}",

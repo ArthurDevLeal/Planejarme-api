@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { FolderController } from "../controllers/folder-controller.ts";
 import { AuthMiddleware } from "../middlewares/auth.ts";
+import { ProOnlyWrites } from "../middlewares/pro-only.ts";
 
 const folderRouter = Router();
 const controller = new FolderController();
-folderRouter.use(AuthMiddleware);
+folderRouter.use(AuthMiddleware, ProOnlyWrites);
 
 folderRouter.get("/", controller.GetFolders);
 folderRouter.post("/", controller.CreateFolder);

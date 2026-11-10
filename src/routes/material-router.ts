@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { MaterialController } from "../controllers/material-controller.ts";
 import { AuthMiddleware } from "../middlewares/auth.ts";
+import { ProOnlyWrites } from "../middlewares/pro-only.ts";
 
 const materialRouter = Router();
 const controller = new MaterialController();
 
-materialRouter.use(AuthMiddleware);
+materialRouter.use(AuthMiddleware, ProOnlyWrites);
 
 materialRouter.get("/user/:userId", controller.GetMaterialsByUser);
 materialRouter.get("/discipline/:disciplineId", controller.GetMaterialsByDiscipline);

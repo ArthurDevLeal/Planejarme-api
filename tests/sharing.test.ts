@@ -47,9 +47,10 @@ before(async () => {
   assert.ok(address && typeof address === "object");
   baseUrl = `http://127.0.0.1:${address.port}`;
 
-  const user = (name: string, email: string) => prisma.user.create({ data: { name, email, passwordHash: "x" } });
+  // Quem compartilha precisa do Pro; a convidada fica no gratuito para provar que receber é livre.
+  const user = (name: string, email: string, plan: "FREE" | "PRO" = "PRO") => prisma.user.create({ data: { name, email, passwordHash: "x", plan } });
   ownerId = (await user("Ana Souza", ownerEmail)).id;
-  guestId = (await user("Bia", guestEmail)).id;
+  guestId = (await user("Bia", guestEmail, "FREE")).id;
   strangerId = (await user("Caio", `estranho-${suffix}@exemplo.test`)).id;
   disciplineId = (await prisma.discipline.create({ data: { name: "Redes", workloadHours: 60, userId: ownerId } })).id;
 });

@@ -15,6 +15,10 @@ const authHeader = () => ({
 });
 
 before(async () => {
+  // Arquivos são do Pro: a conta dos testes precisa existir e ser Pro.
+  if (!dbTest.skip) {
+    await prisma.user.upsert({ where: { id: TEST_USER_ID }, update: { plan: "PRO" }, create: { id: TEST_USER_ID, name: "Materiais teste", email: `materials-${TEST_USER_ID}@example.invalid`, passwordHash: "x", plan: "PRO" } });
+  }
   const { mainRouter } = await import("../src/routes/main-router.ts");
   const app = express();
   app.use(express.json());
@@ -28,12 +32,13 @@ before(async () => {
 });
 
 after(async () => {
+  if (!dbTest.skip) await prisma.user.deleteMany({ where: { id: TEST_USER_ID } });
   if (server) {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
 
-test("POST /materials/upload sem arquivo retorna 400 padronizado", async () => {
+test("POST /materials/upload sem arquivo retorna 400 padronizado", dbTest, async () => {
   const response = await fetch(`${baseUrl}/materials/upload`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeader() },

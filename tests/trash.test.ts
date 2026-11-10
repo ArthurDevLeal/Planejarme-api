@@ -30,6 +30,7 @@ after(async () => {
   if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
 });
 
+const dbTest = { skip: process.env.RUN_DB_TESTS !== "1" };
 const tokenFor = (id: string) => jwt.sign({ id }, process.env.JWT_SECRET || "test-secret", { expiresIn: "5m" });
 
 test("lixeira só aceita tarefa ou material", () => {
@@ -37,20 +38,26 @@ test("lixeira só aceita tarefa ou material", () => {
   assert.equal(TrashItemSchema.safeParse({ kind: "user", id: "x" }).success, false);
 });
 
-test("RN15: upload recusa extensão fora da lista", async () => {
-  const response = await fetch(`${baseUrl}/materials/upload-url`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenFor("qualquer")}` },
-    body: JSON.stringify({ fileName: "programa.exe", sizeBytes: 2 }),
-  });
-  assert.equal(response.status, 400);
-  assert.match((await response.json()).message, /Tipo de arquivo não aceito/);
+test("RN15: upload recusa extensão fora da lista", dbTest, async () => {
+  // Arquivos são do Pro: sem conta Pro a recusa seria pelo plano, não pela extensão.
+  const user = await prisma.user.create({ data: { name: "RN15", email: `rn15-${randomUUID()}@example.invalid`, passwordHash: "x", plan: "PRO" } });
+  try {
+    const response = await fetch(`${baseUrl}/materials/upload-url`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenFor(user.id)}` },
+      body: JSON.stringify({ fileName: "programa.exe", sizeBytes: 2 }),
+    });
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).message, /Tipo de arquivo não aceito/);
+  } finally {
+    await prisma.user.delete({ where: { id: user.id } });
+  }
 });
 
 test("RN16 e RF13: lixeira, restauração, exclusão definitiva, limpeza e anexos", { skip: process.env.RUN_DB_TESTS !== "1" }, async () => {
   const [owner, stranger] = await Promise.all(
     ["Dono", "Outro"].map((name) =>
-      prisma.user.create({ data: { name: `${name} lixeira`, email: `trash-${randomUUID()}@example.invalid`, passwordHash: "x" } }),
+      prisma.user.create({ data: { name: `${name} lixeira`, email: `trash-${randomUUID()}@example.invalid`, passwordHash: "x", plan: "PRO" } }),
     ),
   );
   const token = tokenFor(owner.id);

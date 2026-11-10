@@ -50,7 +50,7 @@ test("RN06, RN11 e RN09 pela API", { skip: process.env.RUN_DB_TESTS !== "1" }, a
   const url = `http://127.0.0.1:${address.port}`;
 
   const user = await prisma.user.create({
-    data: { name: "Regras temporário", email: `rules-${randomUUID()}@example.invalid`, passwordHash: "x" },
+    data: { name: "Regras temporário", email: `rules-${randomUUID()}@example.invalid`, passwordHash: "x", plan: "PRO" },
   });
   const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, { expiresIn: "5m" });
   async function call(path: string, method = "GET", input?: unknown) {

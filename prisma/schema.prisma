@@ -127,6 +127,13 @@ model Material {
   fileSizeMb   Float?
   mimeType     String?
   storagePath  String?
+  // Bytes do objeto guardado (depois da compressão) e do arquivo como chegou.
+  sizeBytes         Int?
+  originalSizeBytes Int?
+  // Hash do arquivo original: mesmo usuário + mesmo hash reaproveita o objeto no Storage.
+  sha256            String?
+  thumbnailPath     String?
+  thumbnailBytes    Int?
   userId       String?
   disciplineId String?
   discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
@@ -139,6 +146,18 @@ model Material {
 
   shareLink    ShareLink?
   shareInvites ShareInvite[]
+
+  @@index([userId, sha256])
+  @@index([storagePath])
+}
+
+// Objetos que o Storage não removeu na hora; o cron diário tenta de novo.
+model StorageDeletion {
+  id        String   @id @default(uuid())
+  path      String   @unique
+  attempts  Int      @default(0)
+  lastError String?
+  createdAt DateTime @default(now())
 }
 
 // A disciplina funciona como pasta automática: aqui ficam só as pastas criadas pelo aluno.

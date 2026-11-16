@@ -28,6 +28,8 @@ model User {
   defaultGradingSystem String? @default("ARITHMETIC")
   // RN09: arredondamento das notas exibidas (NEAREST, UP ou DOWN; sempre 2 casas)
   roundingMode         String  @default("NEAREST")
+  // Avisos de risco (nota ou falta) também por e-mail, no máximo um resumo por dia.
+  riskEmails           Boolean @default(true)
 
   // Plano e cobrança (Abacate Pay). O webhook é quem mantém estes campos; FREE é o padrão de todos.
   // subscriptionStatus: ACTIVE | PAST_DUE | CANCELED. currentPeriodEnd: até quando o Pro está pago.
@@ -61,6 +63,8 @@ model User {
   folders       Folder[]
   shareLinks    ShareLink[]
   shareInvites  ShareInvite[]
+  classTemplates ClassTemplate[]
+  quizzes       Quiz[]
 }
 
 // Eventos do webhook da Abacate Pay já processados: o mesmo evento entregue duas vezes não muda nada na segunda.
@@ -142,6 +146,19 @@ model Discipline {
   color         Int?
   icon          String?
 
+  // Regra de aprovação da disciplina. Nulo herda o padrão do usuário (passingScore, maxAbsencePct).
+  passingScore      Float?
+  maxAbsencePct     Float?
+  hasFinalExam      Boolean?
+  // Média mínima para ter direito à final; nulo = sem mínimo.
+  finalMinAverage   Float?
+  // Média depois da final para aprovar.
+  finalPassingScore Float?
+  // Peso da final na média final: 0.5 = (média + final) / 2; 1 = a final substitui a média.
+  finalExamWeight   Float?
+  // Disciplina copiada de um link da turma.
+  importedFromTemplateId String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -153,6 +170,8 @@ model Discipline {
   folders      Folder[]
   shareLinks   ShareLink[]
   shareInvites ShareInvite[]
+  classTemplate ClassTemplate?
+  quizzes      Quiz[]
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -196,6 +215,9 @@ model Material {
   sha256            String?
   thumbnailPath     String?
   thumbnailBytes    Int?
+  // Texto extraído para o simulado; extraído uma vez e reaproveitado. Vazio = sem texto legível.
+  textContent       String?
+  textExtractedAt   DateTime?
   userId       String?
   disciplineId String?
   discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
@@ -292,6 +314,8 @@ model Evaluation {
   weight Float    @default(1.0)
   score  Float?
   date   DateTime
+  // REGULAR | FINAL. No máximo uma FINAL por disciplina (validado no service).
+  kind   String   @default("REGULAR")
 
   disciplineId String
   discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
@@ -352,4 +376,43 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@unique([userId, dedupeKey])
+}
+
+// Link da turma: colegas importam horários, avaliações e a regra da disciplina. Nunca notas, faltas ou arquivos.
+model ClassTemplate {
+  id           String     @id @default(uuid())
+  token        String     @unique
+  disciplineId String     @unique
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  ownerId      String
+  owner        User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  importCount  Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  @@index([ownerId])
+}
+
+// Simulado gerado por IA a partir dos materiais da disciplina (PRO).
+model Quiz {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  disciplineId String
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  evaluationId String?
+  materialIds  String[]
+  // [{ id, prompt, options[4], answerIndex, explanation, sourceMaterialId }]
+  questions    Json
+  // [{ questionId, chosenIndex }]
+  answers      Json?
+  score        Float?
+  // READY | DONE | FAILED
+  status       String     @default("READY")
+  model        String
+  inputTokens  Int        @default(0)
+  outputTokens Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  @@index([userId, createdAt])
+  @@index([disciplineId])
 }

@@ -1,0 +1,159 @@
+[
+  {
+    "name": "sem avaliações e sem faltas",
+    "input": { "evaluations": [], "absencesUsed": 0, "workloadHours": 60, "rule": {}, "today": "2026-11-16" },
+    "expect": { "verdict": "NO_DATA", "average": null, "absencesLimit": 15, "absencesLeft": 15 }
+  },
+  {
+    "name": "sem avaliações mas no limite de faltas",
+    "input": { "evaluations": [], "absencesUsed": 14, "workloadHours": 60, "rule": {}, "today": "2026-11-16" },
+    "expect": { "verdict": "RISK", "cause": "ABSENCE", "absencesLeft": 1, "reason": "Só pode faltar mais 1 aula." }
+  },
+  {
+    "name": "tudo lançado e aprovado (aritmética ignora peso)",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 3, "score": 8, "date": "2026-09-10" },
+        { "id": "p2", "title": "P2", "weight": 7, "score": 7, "date": "2026-10-10" }
+      ],
+      "absencesUsed": 2, "workloadHours": 60, "rule": {}, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "PASSED", "average": 7.5, "reason": "Aprovado com 7,5." }
+  },
+  {
+    "name": "precisa de 8,5 na P2 em 5 dias (risco)",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 5.5, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": null, "date": "2026-11-21" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": {}, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "RISK", "cause": "GRADE", "neededOnNext": 8.5, "reason": "Precisa de 8,5 na P2 (em 5 dias)." }
+  },
+  {
+    "name": "precisa de 7,5 (atenção)",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 6.5, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": null, "date": "2026-11-17" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": {}, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "ATTENTION", "neededOnNext": 7.5, "reason": "Precisa de 7,5 na P2 (amanhã)." }
+  },
+  {
+    "name": "precisa de mais de 10, com final: risco",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 2, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": null, "date": "2026-11-30" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": {}, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "RISK", "neededOnNext": 12 }
+  },
+  {
+    "name": "precisa de mais de 10, sem final: reprovado",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 2, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": null, "date": "2026-11-30" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": { "hasFinalExam": false }, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "FAILED_GRADE" }
+  },
+  {
+    "name": "cai na final (média + final) / 2",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 5, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": 6, "date": "2026-11-01" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": { "finalPassingScore": 5 }, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "FINAL", "average": 5.5, "neededOnFinal": 4.5, "reason": "Vai para a final: precisa de 4,5." }
+  },
+  {
+    "name": "final padrão: média final precisa chegar à média de aprovação",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 5, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": 5, "date": "2026-11-01" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": {}, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "FINAL", "neededOnFinal": 9 }
+  },
+  {
+    "name": "sem direito à final (abaixo do mínimo)",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 3, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": 3, "date": "2026-11-01" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": { "finalMinAverage": 4 }, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "FAILED_GRADE", "neededOnFinal": null }
+  },
+  {
+    "name": "final substitui a média e já foi feita",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 4, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": 4, "date": "2026-11-01" },
+        { "id": "f", "title": "Final", "weight": 1, "score": 6, "date": "2026-11-10", "kind": "FINAL" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": { "finalExamWeight": 1, "finalPassingScore": 5 }, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "PASSED", "average": 4, "finalAverage": 6 }
+  },
+  {
+    "name": "reprovado por falta vence nota boa",
+    "input": {
+      "evaluations": [{ "id": "p1", "title": "P1", "weight": 1, "score": 9, "date": "2026-10-01" }],
+      "absencesUsed": 16, "workloadHours": 60, "rule": {}, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "FAILED_ABSENCE", "cause": "ABSENCE", "absencesLeft": -1 }
+  },
+  {
+    "name": "regra própria: 30% de faltas e média 6",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 6, "date": "2026-10-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": null, "date": "2026-12-01" }
+      ],
+      "absencesUsed": 10, "workloadHours": 40, "rule": { "maxAbsencePct": 30, "passingScore": 6 }, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "ATTENTION", "cause": "ABSENCE", "absencesLimit": 12, "absencesLeft": 2, "neededOnNext": 6, "reason": "Pode faltar mais 2 aulas." }
+  },
+  {
+    "name": "ponderada com pesos que não somam 10",
+    "input": {
+      "evaluations": [
+        { "id": "a1", "title": "AV1", "weight": 2, "score": 6, "date": "2026-09-20" },
+        { "id": "a2", "title": "AV2", "weight": 3, "score": null, "date": "2026-11-25" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": { "gradingSystem": "WEIGHTED" }, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "ATTENTION", "average": 6, "neededOnNext": 7.666666666666667 }
+  },
+  {
+    "name": "aprovação garantida antes da última prova",
+    "input": {
+      "evaluations": [
+        { "id": "p1", "title": "P1", "weight": 1, "score": 10, "date": "2026-09-01" },
+        { "id": "p2", "title": "P2", "weight": 1, "score": 10, "date": "2026-10-01" },
+        { "id": "p3", "title": "P3", "weight": 1, "score": null, "date": "2026-12-01" }
+      ],
+      "absencesUsed": 0, "workloadHours": 60, "rule": { "passingScore": 6 }, "today": "2026-11-16"
+    },
+    "expect": { "verdict": "PASSED" }
+  },
+  {
+    "name": "limite zero sem faltas não é risco",
+    "input": { "evaluations": [], "absencesUsed": 0, "workloadHours": 0, "rule": {}, "today": "2026-11-16" },
+    "expect": { "verdict": "NO_DATA", "absencesLimit": 0 }
+  }
+]

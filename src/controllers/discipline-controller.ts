@@ -16,6 +16,7 @@ import {
   FindDisciplinesByUserService,
   UpdateDisciplineService,
 } from "../services/discipline-service.ts";
+import { GetDisciplineStatusesService } from "../services/discipline-status-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
@@ -28,6 +29,15 @@ export class DisciplineController {
     const discipline = await FindDisciplineByIdService(result.data.id);
     if (!discipline) throw new NotFoundException("Disciplina não encontrada. O registro pode ter sido removido. Atualize a página e tente novamente.", ErrorCode.DISCIPLINE_NOT_FOUND);
     return sendSuccess(res, discipline);
+  });
+
+  GetDisciplineStatus = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "discipline", req.params, req.body);
+    const result = DisciplineIdSchema.safeParse(req.params);
+    if (!result.success) throw new ValidationException("O identificador de disciplina é inválido. Confira o registro selecionado.", result);
+    const [row] = await GetDisciplineStatusesService(req.userId, result.data.id);
+    if (!row) throw new NotFoundException("Disciplina não encontrada. O registro pode ter sido removido. Atualize a página e tente novamente.", ErrorCode.DISCIPLINE_NOT_FOUND);
+    return sendSuccess(res, row.status);
   });
 
   GetDisciplinesByUser = ErrorHandler(async (req: Request, res: Response) => {

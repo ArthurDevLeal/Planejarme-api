@@ -4,6 +4,7 @@ import type { Prisma } from "../../../generated/prisma/client.ts";
 import { EnsureUserHasCurrentSemester } from "../semester-service.ts";
 import { withTaskStatus } from "../../utils/task-status.ts";
 import type { DisciplineInclude } from "../../schemas/user-schema.ts";
+import { STATUS_USER_SELECT, statusForDiscipline } from "../discipline-status-service.ts";
 
 export async function GetUserContextService(
   userId: string,
@@ -93,6 +94,12 @@ export async function GetUserDisciplinesService(
     orderBy: { name: "asc" },
   })) as DisciplineRow[];
 
+  // Com avaliações e horários dá para calcular a situação (regra de aprovação) de cada disciplina.
+  const statusUser =
+    withSchedules && include.includes("evaluations")
+      ? await prisma.user.findUnique({ where: { id: userId }, select: STATUS_USER_SELECT })
+      : null;
+
   const today = brasiliaDate();
   return rows.map(({ semester, schedules, ...discipline }) => {
     if (!schedules) {
@@ -103,11 +110,16 @@ export async function GetUserDisciplinesService(
       (total, schedule) => total + scheduleAbsences(schedule, today, window),
       0,
     );
+    const absences = Math.min(discipline.workloadHours, discipline.absences + scheduleAbsencesTotal);
     return {
       ...discipline,
       manualAbsences: discipline.absences,
       scheduleAbsences: scheduleAbsencesTotal,
-      absences: Math.min(discipline.workloadHours, discipline.absences + scheduleAbsencesTotal),
+      absences,
+      status:
+        statusUser && discipline.evaluations
+          ? statusForDiscipline({ ...discipline, evaluations: discipline.evaluations }, absences, statusUser, today)
+          : undefined,
       schedules: schedules.map(({ attendances, ...schedule }) => {
         const days = attendances.map((item) => ({ ...item, date: item.date.toISOString().slice(0, 10) }));
         return {

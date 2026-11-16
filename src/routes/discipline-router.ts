@@ -7,6 +7,7 @@ const controller = new DisciplineController();
 disciplineRouter.use(AuthMiddleware);
 
 disciplineRouter.get("/user/:userId", controller.GetDisciplinesByUser);
+disciplineRouter.get("/:id/status", controller.GetDisciplineStatus);
 disciplineRouter.get("/:id", controller.GetDisciplineById);
 disciplineRouter.post("/", controller.CreateDiscipline);
 disciplineRouter.put("/:id", controller.UpdateDiscipline);

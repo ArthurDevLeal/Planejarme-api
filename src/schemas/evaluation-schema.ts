@@ -5,6 +5,7 @@ const CreateEvaluationSchema = z.object({
   weight: z.coerce.number().positive().max(10).optional(),
   score: z.coerce.number().min(0).max(10).optional(),
   date: z.coerce.date(),
+  kind: z.enum(["REGULAR", "FINAL"]).optional(),
   disciplineId: z.string().min(1),
 });
 

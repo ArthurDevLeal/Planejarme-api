@@ -118,7 +118,7 @@ test("simulado pela API: PRO, limite, gabarito escondido, correção e refazer",
     const discipline = await prisma.discipline.create({ data: { name: "Cálculo", workloadHours: 60, gradingSystem: "WEIGHTED", userId: pro.id } });
     const extractedAt = new Date();
     const withText = await prisma.material.create({
-      data: { title: "Limites.pdf", type: "FILE", url: "", userId: pro.id, disciplineId: discipline.id, textContent: "Limite é o valor de que f(x) se aproxima.", textExtractedAt: extractedAt },
+      data: { title: "Limites.pdf", type: "FILE", url: "", userId: pro.id, disciplineId: discipline.id, textContent: "Limite é o valor de que f(x) se aproxima. ".repeat(20), textExtractedAt: extractedAt },
     });
     const scanned = await prisma.material.create({
       data: { title: "Escaneado.pdf", type: "FILE", url: "", userId: pro.id, disciplineId: discipline.id, textContent: "", textExtractedAt: extractedAt },
@@ -251,4 +251,14 @@ test("simulado pela API: PRO, limite, gabarito escondido, correção e refazer",
     await prisma.user.deleteMany({ where: { id: { in: [pro.id, free.id, other.id] } } });
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
+});
+
+test("simulado: tira a letra que o modelo repete no começo da alternativa", async () => {
+  const { validateQuizQuestions } = await import("../src/services/quiz-service.ts");
+  const [q] = validateQuizQuestions(
+    [{ prompt: "P?", options: ["A) um", "B) dois", "C. três", "D) quatro"], answerIndex: 1, explanation: "", sourceMaterialId: "m" }],
+    1,
+    ["m"],
+  );
+  assert.deepEqual(q.options, ["um", "dois", "três", "quatro"]);
 });

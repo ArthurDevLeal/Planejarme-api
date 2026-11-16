@@ -5,6 +5,8 @@ const CreateQuizSchema = z.object({
   evaluationId: z.string().min(1).optional(),
   materialIds: z.array(z.string().min(1)).min(1).max(30).optional(),
   count: z.literal([10, 15, 20]),
+  // Só muda o pedido ao modelo; não é guardado no Quiz.
+  level: z.enum(["BASIC", "MEDIUM", "ADVANCED"]).default("MEDIUM"),
 });
 
 const QuizIdSchema = z.object({ id: z.string().min(1) });

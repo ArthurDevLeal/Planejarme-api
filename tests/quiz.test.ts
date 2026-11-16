@@ -262,3 +262,12 @@ test("simulado: tira a letra que o modelo repete no começo da alternativa", asy
   );
   assert.deepEqual(q.options, ["um", "dois", "três", "quatro"]);
 });
+
+test("simulado: descarta questão cujo enunciado é um nome de arquivo", async () => {
+  const { validateQuizQuestions } = await import("../src/services/quiz-service.ts");
+  const fileQuestion = { prompt: "texto_alterado_0000001829.json", options: ["a.json", "b.json", "c.json", "d.json"], answerIndex: 0, explanation: "", sourceMaterialId: "m" };
+  const real = { prompt: "O que mede a integral dupla de f = 1?", options: ["Área", "Volume", "Massa", "Comprimento"], answerIndex: 0, explanation: "", sourceMaterialId: "m" };
+  const kept = validateQuizQuestions([fileQuestion, real], 2, ["m"]);
+  assert.equal(kept.length, 1);
+  assert.equal(kept[0].prompt, real.prompt);
+});

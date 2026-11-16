@@ -60,9 +60,10 @@ const openRouterClient: QuizModelClient = async ({ system, prompt, materialIds }
     },
     body: JSON.stringify({
       model,
-      max_tokens: 16000,
-      // Questões a partir de um texto dado não pedem raciocínio longo, e o tempo é curto. Modelo sem raciocínio ignora.
-      reasoning: { effort: "low" },
+      max_tokens: 32000,
+      // Raciocínio desligado: no nível avançado o modelo gastava quase todo o limite pensando e o JSON saía cortado.
+      // Questões a partir de um texto dado não precisam dele. Modelo sem raciocínio ignora.
+      reasoning: { enabled: false },
       messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
       response_format: {
         type: "json_schema",
@@ -276,7 +277,9 @@ export async function CreateQuizService(userId: string, data: CreateQuizSchemaTy
   if (failed) {
     console.warn("[quiz] modelo devolveu poucas questões válidas", { model: result.model, valid: questions.length, wanted: data.count });
     // Lista vazia é o modelo dizendo que o texto não sustenta as questões.
-    throw unavailable(questions.length === 0 ? TOO_LITTLE_TEXT : GENERATION_FAILED);
+    // Só uma lista vazia de verdade quer dizer "o texto não sustenta questões"; resposta cortada ou inválida é falha.
+    const emptyAnswer = Array.isArray(result.questions) && result.questions.length === 0;
+    throw unavailable(emptyAnswer ? TOO_LITTLE_TEXT : GENERATION_FAILED);
   }
   return GetQuizService(userId, quiz.id);
 }

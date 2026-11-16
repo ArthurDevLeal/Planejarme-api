@@ -5,8 +5,9 @@ const MB = 1024 * 1024;
 
 export const PLANS = {
   // Arquivos são só do Pro (ProOnlyWrites); zero aqui faz as telas não prometerem espaço no gratuito.
-  FREE: { storageBytes: 0, maxFileBytes: 0, maxDisciplinesPerSemester: 5 as number | null },
-  PRO: { storageBytes: 5 * 1024 * MB, maxFileBytes: 50 * MB, maxDisciplinesPerSemester: null as number | null },
+  // quizzesPerMonth: simulados com IA. 15 é chute inicial; ajustar pelo custo real (Quiz.inputTokens/outputTokens).
+  FREE: { storageBytes: 0, maxFileBytes: 0, maxDisciplinesPerSemester: 5 as number | null, quizzesPerMonth: 0 },
+  PRO: { storageBytes: 5 * 1024 * MB, maxFileBytes: 50 * MB, maxDisciplinesPerSemester: null as number | null, quizzesPerMonth: 15 },
 };
 
 export type PlanId = keyof typeof PLANS;

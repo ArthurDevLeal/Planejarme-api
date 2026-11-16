@@ -11,7 +11,8 @@ export function FindNotificationByIdService(id: string) {
 
 export function FindNotificationsByUserService(userId: string) {
   return prisma.notification.findMany({
-    where: { userId },
+    // RISK_DIGEST é só a marca de "e-mail de risco enviado hoje", não aparece no sino.
+    where: { userId, type: { not: "RISK_DIGEST" } },
     orderBy: { createdAt: "desc" },
   });
 }

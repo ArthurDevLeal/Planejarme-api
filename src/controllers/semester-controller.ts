@@ -19,6 +19,7 @@ import {
   SetCurrentSemesterService,
   UpdateSemesterService,
 } from "../services/semester-service.ts";
+import { GetSemesterWrappedService } from "../services/wrapped-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
@@ -103,6 +104,15 @@ export class SemesterController {
     }
     await DeleteSemesterService(result.data.id);
     return sendSuccess(res, null, "Semester deleted");
+  });
+
+  GetSemesterWrapped = ErrorHandler(async (req: Request, res: Response) => {
+    await AuthorizeRequestService(req.userId, "semester", req.params, req.body);
+    const result = SemesterIdSchema.safeParse(req.params);
+    if (!result.success) throw new ValidationException("O identificador de semestre é inválido.", result);
+    const wrapped = await GetSemesterWrappedService(result.data.id);
+    if (!wrapped) throw new NotFoundException("Semestre não encontrado. O registro pode ter sido removido.", ErrorCode.SEMESTER_NOT_FOUND);
+    return sendSuccess(res, wrapped);
   });
 
   CopyDisciplines = ErrorHandler(async (req: Request, res: Response) => {

@@ -17,6 +17,7 @@ import {
   FindEvaluationsByDisciplineService,
   UpdateEvaluationService,
 } from "../services/evaluation-service.ts";
+import { RefreshRiskForDiscipline } from "../services/risk-notification-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
@@ -48,7 +49,9 @@ export class EvaluationController {
     await AuthorizeRequestService(req.userId, "evaluation", req.params, req.body);
     const result = CreateEvaluationSchema.safeParse(req.body);
     if (!result.success) throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", result);
-    return sendSuccess(res, await CreateEvaluationService(result.data), "Evaluation created", 201);
+    const evaluation = await CreateEvaluationService(result.data);
+    await RefreshRiskForDiscipline(req.userId, evaluation.disciplineId);
+    return sendSuccess(res, evaluation, "Evaluation created", 201);
   });
 
   UpdateEvaluation = ErrorHandler(async (req: Request, res: Response) => {
@@ -57,7 +60,9 @@ export class EvaluationController {
     const body = UpdateEvaluationSchema.safeParse(req.body);
     if (!params.success || !body.success)
       throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", params, body);
-    return sendSuccess(res, await UpdateEvaluationService(params.data.id, body.data), "Evaluation updated");
+    const evaluation = await UpdateEvaluationService(params.data.id, body.data);
+    await RefreshRiskForDiscipline(req.userId, evaluation.disciplineId);
+    return sendSuccess(res, evaluation, "Evaluation updated");
   });
 
   DeleteEvaluation = ErrorHandler(async (req: Request, res: Response) => {

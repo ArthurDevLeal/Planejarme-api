@@ -103,6 +103,9 @@ export interface DisciplineStatus {
   rule: ResolvedRule;
 }
 
+/** O que a API devolve em cada disciplina: a situação e a regra escrita em uma frase. */
+export type DisciplineStatusPayload = DisciplineStatus & { ruleText: string };
+
 const isNum = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
 export function resolveRule(fields: RuleFields, defaults: RuleDefaults): ResolvedRule {

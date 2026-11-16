@@ -29,6 +29,7 @@ export async function GetUserContextService(
         passingScore: true,
         maxAbsencePct: true,
         roundingMode: true,
+        riskEmails: true,
       },
     }),
     findSemesters(),
@@ -174,7 +175,7 @@ export async function GetUserDashboardService(
       orderBy: { createdAt: "desc" },
     }),
     prisma.notification.findMany({
-      where: { userId },
+      where: { userId, type: { not: "RISK_DIGEST" } },
       orderBy: { createdAt: "desc" },
     }),
   ]);

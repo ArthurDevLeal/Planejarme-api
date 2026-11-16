@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.ts";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode } from "../exceptions/root.ts";
+import { RefreshRiskForDiscipline } from "./risk-notification-service.ts";
 import { attendanceWindowEnd, brasiliaDate, courseWindow, effectiveAttendanceStart, scheduleAbsences } from "../utils/academic-date.ts";
 
 export async function SetAttendanceService(userId: string, scheduleId: string, attended: boolean, requestedDate?: string) {
@@ -53,8 +54,10 @@ export async function SetAttendanceService(userId: string, scheduleId: string, a
     }
   }
 
-  return prisma.scheduleAttendance.upsert({
+  const row = await prisma.scheduleAttendance.upsert({
     where: { scheduleId_date: { scheduleId, date } },
     create: { scheduleId, date, attended }, update: { attended },
   });
+  await RefreshRiskForDiscipline(userId, schedule.disciplineId);
+  return row;
 }

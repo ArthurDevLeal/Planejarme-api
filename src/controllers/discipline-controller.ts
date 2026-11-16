@@ -17,6 +17,7 @@ import {
   UpdateDisciplineService,
 } from "../services/discipline-service.ts";
 import { GetDisciplineStatusesService } from "../services/discipline-status-service.ts";
+import { RefreshRiskForDiscipline } from "../services/risk-notification-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
@@ -63,7 +64,9 @@ export class DisciplineController {
     const body = UpdateDisciplineSchema.safeParse(req.body);
     if (!params.success || !body.success)
       throw new ValidationException("Os dados enviados são inválidos. Confira os campos indicados e tente novamente.", params, body);
-    return sendSuccess(res, await UpdateDisciplineService(params.data.id, body.data), "Discipline updated");
+    const discipline = await UpdateDisciplineService(params.data.id, body.data);
+    await RefreshRiskForDiscipline(req.userId, params.data.id);
+    return sendSuccess(res, discipline, "Discipline updated");
   });
 
   DeleteDiscipline = ErrorHandler(async (req: Request, res: Response) => {

@@ -7,6 +7,7 @@ const controller = new SemesterController();
 semesterRouter.use(AuthMiddleware);
 
 semesterRouter.post("/:id/copy", controller.CopyDisciplines);
+semesterRouter.get("/:id/wrapped", controller.GetSemesterWrapped);
 semesterRouter.get("/user/:userId", controller.GetSemestersByUser);
 semesterRouter.get("/:id", controller.GetSemesterById);
 semesterRouter.post("/", controller.CreateSemester);

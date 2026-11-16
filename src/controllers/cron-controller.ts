@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { ErrorCode } from "../exceptions/root.ts";
 import { UnauthorizedException } from "../exceptions/unauthorized.ts";
 import { GenerateDueNotificationsService } from "../services/notification-generator-service.ts";
+import { GenerateRiskNotificationsService } from "../services/risk-notification-service.ts";
 import { ExpireCanceledSubscriptionsService, ReleaseCommissionsService } from "../services/billing-service.ts";
 import { RetryStorageDeletionsService, SweepOrphanObjectsService } from "../services/storage-service.ts";
 import { PurgeExpiredTrashService } from "../services/trash-service.ts";
@@ -24,6 +25,7 @@ export class CronController {
       throw new UnauthorizedException("Acesso restrito ao agendador.", ErrorCode.UNAUTHORIZED);
     }
     const notifications = await GenerateDueNotificationsService();
+    const risk = await GenerateRiskNotificationsService();
     const purged = await PurgeExpiredTrashService();
     const retried = await RetryStorageDeletionsService();
     const swept = await SweepOrphanObjectsService();
@@ -31,7 +33,7 @@ export class CronController {
     const subscriptions = await ExpireCanceledSubscriptionsService();
     return sendSuccess(
       res,
-      { notificationsCreated: notifications.created, trashPurged: purged, storageRetried: retried, storageSwept: swept, commissions, subscriptions },
+      { notificationsCreated: notifications.created, riskNotificationsCreated: risk.created, riskEmailsSent: risk.emailed, trashPurged: purged, storageRetried: retried, storageSwept: swept, commissions, subscriptions },
       "Daily jobs finished",
     );
   });

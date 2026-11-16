@@ -17,6 +17,8 @@ import { sendSuccess } from "../utils/api-response.ts";
 import { trashRouter } from "./trash-router.ts";
 import { folderRouter } from "./folder-router.ts";
 import { publicShareRouter, shareRouter } from "./share-router.ts";
+import { classRouter, publicClassRouter } from "./class-template-router.ts";
+import { quizRouter } from "./quiz-router.ts";
 
 const mainRouter = Router();
 
@@ -34,6 +36,9 @@ mainRouter.use("/trash", trashRouter);
 mainRouter.use("/folders", folderRouter);
 mainRouter.use("/shares", shareRouter);
 mainRouter.use("/public/shares", publicShareRouter);
+mainRouter.use("/public/class", publicClassRouter);
+mainRouter.use("/class", classRouter);
+mainRouter.use("/quizzes", quizRouter);
 // Sem login: a landing lê preços e limites daqui para não repetir números.
 mainRouter.get("/public/plans", (_req, res) => sendSuccess(res, GetPublicPlansService()));
 mainRouter.use("/billing", billingRouter);

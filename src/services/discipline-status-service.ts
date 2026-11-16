@@ -3,7 +3,7 @@ import {
   computeStatus,
   describeRule,
   resolveRule,
-  type DisciplineStatus,
+  type DisciplineStatusPayload,
   type RoundingMode,
   type RuleDefaults,
   type RuleFields,
@@ -18,8 +18,6 @@ export interface StatusDiscipline extends RuleFields {
   workloadHours: number;
   evaluations: { id: string; title: string; weight: number; score: number | null; date: Date; kind: string }[];
 }
-
-export type DisciplineStatusPayload = DisciplineStatus & { ruleText: string };
 
 /** Situação da disciplina com a regra dela (ou o padrão do usuário). absencesUsed já inclui as faltas por horário. */
 export function statusForDiscipline(

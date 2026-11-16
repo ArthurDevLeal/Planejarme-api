@@ -41,6 +41,7 @@ const UpdateUserSchema = z.object({
   maxAbsencePct: z.number().optional(),
   defaultGradingSystem: z.enum(["ARITHMETIC", "WEIGHTED"]).optional(),
   roundingMode: z.enum(["NEAREST", "UP", "DOWN"]).optional(),
+  riskEmails: z.boolean().optional(),
 });
 
 const ChangePasswordSchema = z.object({

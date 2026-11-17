@@ -130,7 +130,7 @@ test("simulado pela API: PRO, limite, gabarito escondido, correção e refazer",
     setQuizModelClient(fake);
     const freeDiscipline = await prisma.discipline.create({ data: { name: "Física", workloadHours: 60, gradingSystem: "WEIGHTED", userId: free.id } });
     const forbidden = await call(tokenOf(free.id), "/quizzes", "POST", { disciplineId: freeDiscipline.id, count: 10 });
-    assert.equal(forbidden.status, 403);
+    assert.equal(forbidden.status, 400);
     assert.match(forbidden.body.message, /plano Pro/);
 
     assert.equal((await call(proToken, "/quizzes", "POST", { disciplineId: discipline.id, count: 12 })).status, 400);

@@ -234,6 +234,10 @@ export async function CreateQuizService(userId: string, data: CreateQuizSchemaTy
     if (text) withText.push({ id: material.id, title: material.title, text });
   }
   if (withText.length === 0) {
+    // Gratuito não envia arquivos: não mandar fazer o que o plano não deixa.
+    if (materials.length === 0 && usage.limit < PLANS.PRO.quizzesPerMonth) {
+      throw new BadRequestsException("O simulado é gerado a partir dos materiais da disciplina, e enviar arquivos é do plano Pro.", ErrorCode.INVALID_DATA);
+    }
     throw new BadRequestsException(
       "Nenhum material com texto legível. Envie PDF, Word ou TXT com texto (PDF escaneado não serve) para gerar o simulado.",
       ErrorCode.INVALID_DATA,

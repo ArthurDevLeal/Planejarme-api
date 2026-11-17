@@ -204,7 +204,8 @@ async function paid(user: BillingUser, subscriptionId: string, data: EventData, 
   }
   await prisma.user.update({
     where: { id: user.id },
-    data: { plan: "PRO", subscriptionStatus: "ACTIVE", currentPeriodEnd: periodEnd, abacateSubscriptionId: subscriptionId },
+    // Pagar encerra o teste: se cancelar depois, não volta a ser Pro pelo trial.
+    data: { plan: "PRO", subscriptionStatus: "ACTIVE", currentPeriodEnd: periodEnd, abacateSubscriptionId: subscriptionId, trialEndsAt: null },
   });
   await commissionFor(user.id, data, now);
   await track(user.id, "subscription_activated", { renewal });

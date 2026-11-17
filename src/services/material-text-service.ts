@@ -64,7 +64,7 @@ export async function gatherMaterialText(
   if (materialIds) {
     const ids = [...new Set(materialIds)];
     const found = await prisma.material.findMany({
-      where: { id: { in: ids }, deletedAt: null, OR: [{ userId }, { userId: null, discipline: { userId } }] },
+      where: { id: { in: ids }, disciplineId, deletedAt: null, OR: [{ userId }, { userId: null, discipline: { userId } }] },
       select,
     });
     if (found.length !== ids.length) throw new NotFoundException("Um dos materiais escolhidos não foi encontrado.", ErrorCode.MATERIAL_NOT_FOUND);

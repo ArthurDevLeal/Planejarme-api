@@ -22,7 +22,7 @@ export function FindNotificationsByUserService(userId: string) {
 
 export function FindUnreadNotificationsByUserService(userId: string) {
   return prisma.notification.findMany({
-    where: { userId, read: false },
+    where: { userId, read: false, type: { notIn: [...MARKER_TYPES] } },
     orderBy: { createdAt: "desc" },
   });
 }

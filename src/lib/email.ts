@@ -17,6 +17,7 @@ export async function SendEmail({ to, subject, html, text }: EmailInput) {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, html, text }),
+    signal: AbortSignal.timeout(8000),
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

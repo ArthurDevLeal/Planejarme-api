@@ -119,6 +119,6 @@ export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile
     select: { id: true, name: true, email: true },
   });
   await track(user.id, "user_signed_up", { method: provider ?? "oauth" });
-  SendWelcomeEmail(user);
+  await SendWelcomeEmail(user);
   return { userId: user.id, isNew: true };
 }

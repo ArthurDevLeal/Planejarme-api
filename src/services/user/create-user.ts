@@ -20,6 +20,6 @@ export async function CreateUserService(args: CreateUserSchemaType) {
     },
   });
   await track(user.id, "user_signed_up", { method: "email" });
-  SendWelcomeEmail(user);
+  await SendWelcomeEmail(user);
   return user;
 }

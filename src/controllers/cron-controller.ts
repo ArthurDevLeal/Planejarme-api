@@ -26,11 +26,13 @@ export class CronController {
       throw new UnauthorizedException("Acesso restrito ao agendador.", ErrorCode.UNAUTHORIZED);
     }
     // Um job que falha não derruba os seguintes: o erro vai para o log e o resultado dele fica ausente.
+    const failed: string[] = [];
     const run = async <T>(name: string, job: () => Promise<T>): Promise<T | undefined> => {
       try {
         return await job();
       } catch (err) {
         console.error("[cron]", name, err);
+        failed.push(name);
         return undefined;
       }
     };
@@ -45,7 +47,7 @@ export class CronController {
     const weekly = await run("weekly-digest", () => SendWeeklyDigestService());
     return sendSuccess(
       res,
-      { notificationsCreated: notifications?.created, riskNotificationsCreated: risk?.created, riskEmailsSent: risk?.emailed, trashPurged: purged, storageRetried: retried, storageSwept: swept, commissions, subscriptions, trialEmails, weeklyEmailsSent: weekly?.emailed },
+      { notificationsCreated: notifications?.created, riskNotificationsCreated: risk?.created, riskEmailsSent: risk?.emailed, trashPurged: purged, storageRetried: retried, storageSwept: swept, commissions, subscriptions, trialEmails, weeklyEmailsSent: weekly?.emailed, failed },
       "Daily jobs finished",
     );
   });

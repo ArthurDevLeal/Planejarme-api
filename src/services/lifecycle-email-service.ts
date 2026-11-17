@@ -9,12 +9,13 @@ import { isoWeek } from "./risk-notification-service.ts";
 const USER_BATCH = 200;
 const DAY_MS = 86_400_000;
 const MAX_ITEMS = 10;
-const firstName = (name: string) => name.split(" ")[0];
+/** Primeiro nome sem espaços sobrando; vazio vira undefined (sem saudação). */
+export const firstName = (name: string) => name.trim().split(/s+/)[0] || undefined;
 
 // ---------- Boas-vindas ----------
 
-/** Não atrasa nem derruba o cadastro: falha só vai para o log. */
-export function SendWelcomeEmail(user: { name: string; email: string }) {
+/** Aguardado pelo cadastro (a função serverless congela depois da resposta), mas uma falha só vai para o log. */
+export async function SendWelcomeEmail(user: { name: string; email: string }) {
   const { html, text } = renderEmail({
     preheader: `Seu Pro está liberado por ${TRIAL_DAYS} dias.`,
     greetingName: firstName(user.name),
@@ -26,7 +27,11 @@ export function SendWelcomeEmail(user: { name: string; email: string }) {
     cta: { label: "Abrir o Planejar.me", url: `${webUrl()}/dashboard/visao-hoje` },
     footer: "Você recebeu este e-mail porque criou uma conta no Planejar.me.",
   });
-  SendEmail({ to: user.email, subject: "Bem-vindo ao Planejar.me", html, text }).catch((error) => console.error("[email] boas-vindas", error));
+  try {
+    await SendEmail({ to: user.email, subject: "Bem-vindo ao Planejar.me", html, text });
+  } catch (error) {
+    console.error("[email] boas-vindas", error);
+  }
 }
 
 // ---------- Trial ----------
@@ -45,13 +50,13 @@ function trialEmail(kind: TrialKind, name: string) {
   const url = `${webUrl()}/dashboard/configuracoes?secao=plano`;
   const ending = kind === "ending";
   return {
-    subject: ending ? "Seu teste do Pro termina amanhã" : "Seu teste do Pro terminou",
+    subject: ending ? "Seu teste do Pro termina em até 2 dias" : "Seu teste do Pro terminou",
     ...renderEmail({
       preheader: ending ? "Assine para manter o Pro." : "Sua conta voltou ao plano gratuito.",
       greetingName: firstName(name),
       paragraphs: [
         ending
-          ? "Seu teste grátis do Pro termina amanhã. Para manter simulados, materiais e tudo mais sem interrupção, escolha seu plano."
+          ? "Seu teste grátis do Pro termina em até 2 dias. Para manter simulados, materiais e tudo mais sem interrupção, escolha seu plano."
           : "Seu teste grátis do Pro terminou e sua conta está no plano gratuito. Seus dados continuam salvos. Assine quando quiser para voltar ao Pro.",
       ],
       cta: { label: "Ver planos", url },
@@ -136,6 +141,18 @@ export function digestItems(rows: { date: Date; label: string }[]): string[] {
     .map((row) => `${dayMonth(row.date)} - ${escapeHtml(row.label)}`);
 }
 
+/** Só quem tem tarefa pendente ou avaliação sem nota na janela entra na paginação. */
+export function weeklyUsersWhere(range: { gte: Date; lt: Date }, userIds?: string[]) {
+  return {
+    weeklyEmails: true,
+    ...(userIds ? { id: { in: userIds } } : {}),
+    OR: [
+      { tasks: { some: { status: { not: "COMPLETED" }, deletedAt: null, dueDate: range } } },
+      { disciplines: { some: { semester: { isCurrent: true }, evaluations: { some: { score: null, date: range } } } } },
+    ],
+  };
+}
+
 export async function SendWeeklyDigestService(now = new Date(), { send = SendEmail, userIds }: { send?: typeof SendEmail; userIds?: string[] } = {}) {
   if (!isMondayInBrasilia(now)) return { emailed: 0 };
   let emailed = 0;
@@ -148,7 +165,7 @@ export async function SendWeeklyDigestService(now = new Date(), { send = SendEma
 
   await forEachUser(
     (cursor) => prisma.user.findMany({
-      where: { weeklyEmails: true, ...(userIds ? { id: { in: userIds } } : {}) },
+      where: weeklyUsersWhere(range, userIds),
       select: { id: true, name: true, email: true },
       orderBy: { id: "asc" },
       take: USER_BATCH,

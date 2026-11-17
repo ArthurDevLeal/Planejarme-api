@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderEmail } from "../src/lib/email-layout.ts";
-import { digestItems, isMondayInBrasilia, trialWindow } from "../src/services/lifecycle-email-service.ts";
+import { digestItems, firstName, isMondayInBrasilia, trialWindow, weeklyUsersWhere } from "../src/services/lifecycle-email-service.ts";
 
 const inWindow = (w: { gt: Date; lte: Date }, d: Date) => d > w.gt && d <= w.lte;
 
@@ -61,5 +61,22 @@ describe("resumo semanal", () => {
     assert.equal(items[0], "19/11 - T11");
     assert.equal(items[9], "28/11 - T2");
     assert.ok(digestItems([rows[0]])[0].includes("&#60;script&#62;"));
+  });
+});
+
+describe("firstName e weeklyUsersWhere", () => {
+  it("firstName ignora espaços e vazio vira undefined", () => {
+    assert.equal(firstName("  Ana   Maria "), "Ana");
+    assert.equal(firstName("   "), undefined);
+  });
+  it("weeklyUsersWhere filtra quem tem algo na janela", () => {
+    const range = { gte: new Date("2026-11-16T03:00:00Z"), lt: new Date("2026-11-23T03:00:00Z") };
+    const where = weeklyUsersWhere(range, ["u1"]);
+    assert.equal(where.weeklyEmails, true);
+    assert.deepEqual(where.id, { in: ["u1"] });
+    assert.equal(where.OR.length, 2);
+    assert.deepEqual(where.OR[0].tasks?.some?.dueDate, range);
+    assert.equal(where.OR[1].disciplines?.some?.evaluations.some.score, null);
+    assert.equal("id" in weeklyUsersWhere(range), false);
   });
 });

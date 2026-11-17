@@ -21,6 +21,7 @@ import { classRouter, publicClassRouter } from "./class-template-router.ts";
 import { quizRouter } from "./quiz-router.ts";
 import { publicCalendarRouter } from "./calendar-router.ts";
 import { reviewRouter } from "./review-router.ts";
+import { flashcardRouter } from "./flashcard-router.ts";
 
 const mainRouter = Router();
 
@@ -43,6 +44,7 @@ mainRouter.use("/public/calendar", publicCalendarRouter);
 mainRouter.use("/reviews", reviewRouter);
 mainRouter.use("/class", classRouter);
 mainRouter.use("/quizzes", quizRouter);
+mainRouter.use("/flashcards", flashcardRouter);
 // Sem login: a landing lê preços e limites daqui para não repetir números.
 mainRouter.get("/public/plans", (_req, res) => sendSuccess(res, GetPublicPlansService()));
 mainRouter.use("/billing", billingRouter);

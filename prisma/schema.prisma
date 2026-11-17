@@ -45,10 +45,10 @@ model User {
   trialEndsAt           DateTime?
 
   // Afiliados. referralCode e affiliateStatus (ACTIVE | BLOCKED) só existem para quem entrou no programa.
-  referralCode         String?   @unique
+  referralCode         String?          @unique
   referredById         String?
-  referredBy           User?     @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals            User[]    @relation("Referrals")
+  referredBy           User?            @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals            User[]           @relation("Referrals")
   affiliateStatus      String?
   affiliateBlockedAt   DateTime?
   affiliateBlockReason String?
@@ -59,18 +59,19 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  resetTokens   PasswordResetToken[]
-  semesters     Semester[]
-  disciplines   Discipline[]
-  tasks         Task[]
-  inboxItems    InboxItem[]
-  notifications Notification[]
-  folders       Folder[]
-  shareLinks    ShareLink[]
-  shareInvites  ShareInvite[]
+  resetTokens    PasswordResetToken[]
+  semesters      Semester[]
+  disciplines    Discipline[]
+  tasks          Task[]
+  inboxItems     InboxItem[]
+  notifications  Notification[]
+  folders        Folder[]
+  shareLinks     ShareLink[]
+  shareInvites   ShareInvite[]
   classTemplates ClassTemplate[]
-  quizzes       Quiz[]
-  reviewChecks  ReviewCheck[]
+  quizzes        Quiz[]
+  reviewChecks   ReviewCheck[]
+  flashcardDecks FlashcardDeck[]
 }
 
 // Eventos do webhook da Abacate Pay já processados: o mesmo evento entregue duas vezes não muda nada na segunda.
@@ -82,18 +83,18 @@ model BillingEvent {
 
 // Uma comissão por pagamento do indicado (paymentId); checkoutId liga o reembolso à comissão. status: PENDING | AVAILABLE | PAID | CANCELED | FROZEN.
 model Commission {
-  id              String    @id @default(uuid())
-  affiliateId     String
-  affiliate       User      @relation("AffiliateCommissions", fields: [affiliateId], references: [id], onDelete: Cascade)
-  referredUserId  String?
-  referredUser    User?     @relation("ReferredCommissions", fields: [referredUserId], references: [id], onDelete: SetNull)
-  paymentId       String    @unique
-  checkoutId      String?
-  amountCents     Int
-  status          String    @default("PENDING")
-  availableAt     DateTime
-  paidAt          DateTime?
-  createdAt       DateTime  @default(now())
+  id             String    @id @default(uuid())
+  affiliateId    String
+  affiliate      User      @relation("AffiliateCommissions", fields: [affiliateId], references: [id], onDelete: Cascade)
+  referredUserId String?
+  referredUser   User?     @relation("ReferredCommissions", fields: [referredUserId], references: [id], onDelete: SetNull)
+  paymentId      String    @unique
+  checkoutId     String?
+  amountCents    Int
+  status         String    @default("PENDING")
+  availableAt    DateTime
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
 
   @@index([affiliateId, status])
   @@index([checkoutId])
@@ -153,15 +154,15 @@ model Discipline {
   icon          String?
 
   // Regra de aprovação da disciplina. Nulo herda o padrão do usuário (passingScore, maxAbsencePct).
-  passingScore      Float?
-  maxAbsencePct     Float?
-  hasFinalExam      Boolean?
+  passingScore           Float?
+  maxAbsencePct          Float?
+  hasFinalExam           Boolean?
   // Média mínima para ter direito à final; nulo = sem mínimo.
-  finalMinAverage   Float?
+  finalMinAverage        Float?
   // Média depois da final para aprovar.
-  finalPassingScore Float?
+  finalPassingScore      Float?
   // Peso da final na média final: 0.5 = (média + final) / 2; 1 = a final substitui a média.
-  finalExamWeight   Float?
+  finalExamWeight        Float?
   // Disciplina copiada de um link da turma.
   importedFromTemplateId String?
 
@@ -171,13 +172,14 @@ model Discipline {
   semesterId String?
   semester   Semester? @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
-  schedules    Schedule[]
-  materials    Material[]
-  folders      Folder[]
-  shareLinks   ShareLink[]
-  shareInvites ShareInvite[]
-  classTemplate ClassTemplate?
-  quizzes      Quiz[]
+  schedules      Schedule[]
+  materials      Material[]
+  folders        Folder[]
+  shareLinks     ShareLink[]
+  shareInvites   ShareInvite[]
+  classTemplate  ClassTemplate?
+  quizzes        Quiz[]
+  flashcardDecks FlashcardDeck[]
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -207,13 +209,13 @@ model ScheduleAttendance {
 }
 
 model Material {
-  id           String      @id @default(uuid())
-  title        String
-  type         String
-  url          String
-  fileSizeMb   Float?
-  mimeType     String?
-  storagePath  String?
+  id                String      @id @default(uuid())
+  title             String
+  type              String
+  url               String
+  fileSizeMb        Float?
+  mimeType          String?
+  storagePath       String?
   // Bytes do objeto guardado (depois da compressão) e do arquivo como chegou.
   sizeBytes         Int?
   originalSizeBytes Int?
@@ -224,15 +226,15 @@ model Material {
   // Texto extraído para o simulado; extraído uma vez e reaproveitado. Vazio = sem texto legível.
   textContent       String?
   textExtractedAt   DateTime?
-  userId       String?
-  disciplineId String?
-  discipline   Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
-  taskId       String?
-  task         Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  folderId     String?
-  folder       Folder?     @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  deletedAt    DateTime?
-  createdAt    DateTime    @default(now())
+  userId            String?
+  disciplineId      String?
+  discipline        Discipline? @relation(fields: [disciplineId], references: [id], onDelete: SetNull)
+  taskId            String?
+  task              Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  folderId          String?
+  folder            Folder?     @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  deletedAt         DateTime?
+  createdAt         DateTime    @default(now())
 
   shareLink    ShareLink?
   shareInvites ShareInvite[]
@@ -324,7 +326,7 @@ model Evaluation {
   kind   String   @default("REGULAR")
 
   disciplineId String
-  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  discipline   Discipline    @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
   reviewChecks ReviewCheck[]
 
   createdAt DateTime @default(now())
@@ -436,4 +438,39 @@ model Quiz {
 
   @@index([userId, createdAt])
   @@index([disciplineId])
+}
+
+model FlashcardDeck {
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  disciplineId String
+  discipline   Discipline  @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  title        String
+  materialIds  String[]
+  // READY | FAILED
+  status       String      @default("READY")
+  model        String
+  inputTokens  Int         @default(0)
+  outputTokens Int         @default(0)
+  createdAt    DateTime    @default(now())
+  cards        Flashcard[]
+
+  @@index([userId, createdAt])
+}
+
+model Flashcard {
+  id           String        @id @default(uuid())
+  deckId       String
+  deck         FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  position     Int
+  front        String
+  back         String
+  ease         Float         @default(2.5)
+  intervalDays Int           @default(0)
+  reps         Int           @default(0)
+  lapses       Int           @default(0)
+  dueAt        DateTime      @default(now())
+
+  @@index([deckId, dueAt])
 }

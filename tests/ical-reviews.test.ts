@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildCalendar, escapeText, foldLine } from "../src/utils/ical.ts";
 import { reviewDays } from "../src/utils/review-plan.ts";
+import { RateLimit } from "../src/middlewares/rate-limit.ts";
 
 test("escapeText escapa barra, ponto e vírgula, vírgula e quebras de linha", () => {
   assert.equal(escapeText("a\\b;c,d\ne\r\nf"), "a\\\\b\\;c\\,d\\ne\\nf");
@@ -41,4 +42,20 @@ test("reviewDays: fronteiras de D-7, D-3 e D-1", () => {
   assert.deepEqual(reviewDays("2026-11-19", "2026-11-18"), ["2026-11-18"]); // amanhã: D-1 = hoje
   assert.deepEqual(reviewDays("2026-11-18", "2026-11-18"), []); // prova hoje
   assert.deepEqual(reviewDays("2026-12-01", "2026-11-24"), ["2026-11-24", "2026-11-28", "2026-11-30"]); // D-7 = hoje
+});
+
+test("escapeText remove caracteres de controle", () => {
+  assert.equal(escapeText("a\x00b\x07c\x1Fd\x7Fe\tf"), "abcde\tf");
+});
+
+test("RateLimit: chaves diferentes não dividem o contador", () => {
+  const limit = RateLimit({ windowMs: 60_000, max: 1, key: (req) => String(req.params.token) });
+  const run = (token: string) => {
+    let err: unknown;
+    limit({ params: { token }, ip: "1.1.1.1" } as never, { setHeader() {} } as never, ((e?: unknown) => { err = e; }) as never);
+    return err;
+  };
+  assert.equal(run("a"), undefined);
+  assert.ok(run("a"));
+  assert.equal(run("b"), undefined);
 });

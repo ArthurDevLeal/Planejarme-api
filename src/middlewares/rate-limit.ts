@@ -2,12 +2,12 @@ import { NextFunction, Request, Response } from "express";
 import { ErrorCode, HttpException } from "../exceptions/root.ts";
 
 // shortcut: contador em memória por instância; na Vercel cada instância conta separado. Trocar por Redis/Upstash se houver abuso real.
-export function RateLimit({ windowMs, max }: { windowMs: number; max: number }) {
+export function RateLimit({ windowMs, max, key: keyOf }: { windowMs: number; max: number; key?: (req: Request) => string }) {
   const hits = new Map<string, { count: number; resetAt: number }>();
 
   return (req: Request, res: Response, next: NextFunction) => {
     const now = Date.now();
-    const key = req.ip ?? "unknown";
+    const key = keyOf?.(req) ?? req.ip ?? "unknown";
     let entry = hits.get(key);
     if (!entry || entry.resetAt <= now) {
       entry = { count: 0, resetAt: now + windowMs };

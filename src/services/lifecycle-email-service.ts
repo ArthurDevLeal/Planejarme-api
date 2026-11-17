@@ -10,7 +10,7 @@ const USER_BATCH = 200;
 const DAY_MS = 86_400_000;
 const MAX_ITEMS = 10;
 /** Primeiro nome sem espaços sobrando; vazio vira undefined (sem saudação). */
-export const firstName = (name: string) => name.trim().split(/s+/)[0] || undefined;
+export const firstName = (name: string) => name.trim().split(/\s+/)[0] || undefined;
 
 // ---------- Boas-vindas ----------
 

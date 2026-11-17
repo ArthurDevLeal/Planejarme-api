@@ -33,7 +33,7 @@ test("flashcards: hard, good e easy seguem o SM-2 simplificado", () => {
 
   const easy = schedule({ ...base, reps: 2, intervalDays: 10 }, "easy", now);
   assert.deepEqual([easy.intervalDays, easy.ease], [33, 2.65]);
-  assert.equal(schedule(base, "easy", now).intervalDays, 1);
+  assert.equal(schedule(base, "easy", now).intervalDays, 4);
 });
 
 test("flashcards: facilidade fica entre 1.3 e 2.8", () => {
@@ -186,5 +186,7 @@ test("previewOf: cartão novo bate com schedule()", () => {
     assert.equal(p[g], formatInterval(schedule(base, g, now).dueAt.getTime() - now.getTime()));
   }
   assert.equal(p.again, "10 min");
+  assert.equal(p.hard, "1 dia");
   assert.equal(p.good, "1 dia");
+  assert.equal(p.easy, "4 dias");
 });

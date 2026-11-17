@@ -79,7 +79,7 @@ export function schedule(card: { ease: number; intervalDays: number; reps: numbe
   if (grade === "hard") days = Math.max(intervalDays + 1, Math.round(intervalDays * 1.2));
   else {
     days = reps === 0 ? 1 : reps === 1 ? 3 : Math.round(intervalDays * ease);
-    if (grade === "easy") days = Math.round(days * 1.3);
+    if (grade === "easy") days = reps === 0 ? 4 : Math.round(days * 1.3);
   }
   days = Math.max(1, days);
   const nextEase = grade === "hard" ? ease - 0.15 : grade === "easy" ? ease + 0.15 : ease;

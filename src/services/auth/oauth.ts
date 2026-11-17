@@ -1,5 +1,6 @@
 import { hash } from "bcrypt";
 import crypto from "node:crypto";
+import { track } from "../../lib/analytics.ts";
 import { prisma } from "../../../lib/prisma.ts";
 import { ResolveReferrerService } from "../affiliate-service.ts";
 
@@ -98,7 +99,7 @@ export async function FetchOAuthProfileService(provider: OAuthProvider, code: st
   return { email: primary.email, name };
 }
 
-export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile, ref?: string) {
+export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile, ref?: string, provider?: OAuthProvider) {
   const existing = await prisma.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
     select: { id: true },
@@ -114,5 +115,6 @@ export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile
     },
     select: { id: true },
   });
+  await track(user.id, "user_signed_up", { method: provider ?? "oauth" });
   return { userId: user.id, isNew: true };
 }

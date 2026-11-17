@@ -14,6 +14,7 @@ import { PLANS } from "../config/plans.ts";
 import { HttpException, ErrorCode } from "../exceptions/root.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { abacatepay, AbacatePayError } from "../lib/abacatepay.ts";
+import { track } from "../lib/analytics.ts";
 
 const DAY_MS = 86_400_000;
 const settings = () => `${webUrl()}/dashboard/configuracoes?secao=plano`;
@@ -76,6 +77,7 @@ export async function CreateCheckoutService(userId: string, interval: BillingInt
     returnUrl: `${settings()}&checkout=cancelado`,
     completionUrl: `${settings()}&checkout=sucesso`,
   });
+  await track(userId, "checkout_started", { interval });
   return { url: checkout.url };
 }
 
@@ -107,6 +109,7 @@ export async function CancelSubscriptionService(userId: string, now = new Date()
   }
   const paidUntil = user.currentPeriodEnd && user.currentPeriodEnd > now ? user.currentPeriodEnd : null;
   if (!paidUntil) await prisma.user.update({ where: { id: userId }, data: { plan: "FREE" } });
+  await track(userId, "subscription_canceled", { source: "app" });
   return { currentPeriodEnd: paidUntil };
 }
 
@@ -189,7 +192,7 @@ async function commissionFor(userId: string, data: EventData, now: Date) {
 }
 
 /** Pagamento confirmado (assinatura nova ou renovada): Pro até o fim do período pago, mais a comissão. */
-async function paid(user: BillingUser, subscriptionId: string, data: EventData, now: Date, deps: Dependencies) {
+async function paid(user: BillingUser, subscriptionId: string, data: EventData, now: Date, deps: Dependencies, renewal: boolean) {
   let periodEnd = await deps.periodEnd(subscriptionId);
   if (!periodEnd) {
     // Sem a data da API, um ciclo a partir do fim do período atual (ou de agora, se já acabou).
@@ -201,6 +204,7 @@ async function paid(user: BillingUser, subscriptionId: string, data: EventData, 
     data: { plan: "PRO", subscriptionStatus: "ACTIVE", currentPeriodEnd: periodEnd, abacateSubscriptionId: subscriptionId },
   });
   await commissionFor(user.id, data, now);
+  await track(user.id, "subscription_activated", { renewal });
 }
 
 async function applyEvent(event: AbacateEvent, now: Date, deps: Dependencies) {
@@ -218,11 +222,11 @@ async function applyEvent(event: AbacateEvent, now: Date, deps: Dependencies) {
         await cancelAtAbacate(subscriptionId);
         return;
       }
-      return paid(user, subscriptionId, data, now, deps);
+      return paid(user, subscriptionId, data, now, deps, false);
     }
     case "subscription.renewed": {
       const user = await userBySubscription(subscriptionId);
-      if (user && subscriptionId) await paid(user, subscriptionId, data, now, deps);
+      if (user && subscriptionId) await paid(user, subscriptionId, data, now, deps, true);
       return;
     }
     case "subscription.payment_failed": {
@@ -238,6 +242,7 @@ async function applyEvent(event: AbacateEvent, now: Date, deps: Dependencies) {
       // Quem cancelou por aqui (status já CANCELED) fica com o Pro até o fim do que pagou; qualquer outro cancelamento corta na hora.
       const keepUntilPeriodEnd = user.subscriptionStatus === "CANCELED" && user.currentPeriodEnd && user.currentPeriodEnd > now;
       await prisma.user.update({ where: { id: user.id }, data: { subscriptionStatus: "CANCELED", ...(keepUntilPeriodEnd ? {} : { plan: "FREE" }) } });
+      await track(user.id, "subscription_canceled", { source: "webhook" });
       return;
     }
     case "checkout.refunded": {

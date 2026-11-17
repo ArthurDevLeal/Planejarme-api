@@ -1,10 +1,11 @@
 import { hash } from "bcrypt";
+import { track } from "../../lib/analytics.ts";
 import { prisma } from "../../../lib/prisma.ts";
 import { CreateUserSchemaType } from "../../schemas/user-schema.ts";
 import { ResolveReferrerService } from "../affiliate-service.ts";
 
 export async function CreateUserService(args: CreateUserSchemaType) {
-  return await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       name: args.name,
       email: args.email,
@@ -15,4 +16,6 @@ export async function CreateUserService(args: CreateUserSchemaType) {
       referredById: await ResolveReferrerService(args.ref, args.email),
     },
   });
+  await track(user.id, "user_signed_up", { method: "email" });
+  return user;
 }

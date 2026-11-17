@@ -71,7 +71,7 @@ export class OAuthController {
       if (!code) throw new OAuthError("failed", "código ausente");
 
       const profile = await FetchOAuthProfileService(provider, code);
-      const { userId, isNew } = await FindOrCreateOAuthUserService(profile, ref);
+      const { userId, isNew } = await FindOrCreateOAuthUserService(profile, ref, provider);
       return res.redirect(webCallback({ token: signSessionToken(userId), ...(isNew ? { new: "1" } : {}) }));
     } catch (error) {
       if (!(error instanceof OAuthError) || error.code === "failed") console.error("[oauth]", provider, error);

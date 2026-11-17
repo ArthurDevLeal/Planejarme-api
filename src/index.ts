@@ -1,5 +1,6 @@
 /// <reference path="./@types/express.d.ts" />
 
+import "./lib/sentry.ts";
 import cors from "cors";
 import express, { urlencoded } from "express";
 import helmet from "helmet";

@@ -7,7 +7,7 @@ export type IcalEvent = {
 };
 
 export function escapeText(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n|\r|\n/g, "\\n");
+  return value.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n|\r|\n/g, "\\n");
 }
 
 /** Dobra em 75 octetos (RFC 5545, 3.1) sem nunca partir um caractere UTF-8; a continuação começa com um espaço. */
@@ -42,6 +42,8 @@ export function buildCalendar(events: IcalEvent[], now = new Date()): string {
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "X-WR-CALNAME:Planejar.me",
+    "REFRESH-INTERVAL;VALUE=DURATION:PT6H",
+    "X-PUBLISHED-TTL:PT6H",
   ];
   for (const e of events) {
     lines.push(

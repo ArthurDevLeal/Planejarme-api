@@ -1,0 +1,1 @@
+ALTER TABLE "User" ADD COLUMN "weeklyEmails" BOOLEAN NOT NULL DEFAULT true;

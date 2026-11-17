@@ -30,6 +30,7 @@ model User {
   roundingMode         String  @default("NEAREST")
   // Avisos de risco (nota ou falta) também por e-mail, no máximo um resumo por dia.
   riskEmails           Boolean @default(true)
+  weeklyEmails         Boolean @default(true)
 
   // Plano e cobrança (Abacate Pay). O webhook é quem mantém estes campos; FREE é o padrão de todos.
   // subscriptionStatus: ACTIVE | PAST_DUE | CANCELED. currentPeriodEnd: até quando o Pro está pago.

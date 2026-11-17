@@ -1,4 +1,5 @@
 import { brasiliaDate, courseWindow, scheduleAbsences } from "../../utils/academic-date.ts";
+import { MARKER_TYPES } from "../notification-service.ts";
 import { prisma } from "../../../lib/prisma.ts";
 import type { Prisma } from "../../../generated/prisma/client.ts";
 import { EnsureUserHasCurrentSemester } from "../semester-service.ts";
@@ -30,6 +31,7 @@ export async function GetUserContextService(
         maxAbsencePct: true,
         roundingMode: true,
         riskEmails: true,
+        weeklyEmails: true,
       },
     }),
     findSemesters(),
@@ -175,7 +177,7 @@ export async function GetUserDashboardService(
       orderBy: { createdAt: "desc" },
     }),
     prisma.notification.findMany({
-      where: { userId, type: { not: "RISK_DIGEST" } },
+      where: { userId, type: { notIn: [...MARKER_TYPES] } },
       orderBy: { createdAt: "desc" },
     }),
   ]);

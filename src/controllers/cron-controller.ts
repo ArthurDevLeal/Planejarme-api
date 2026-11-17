@@ -7,6 +7,7 @@ import { GenerateRiskNotificationsService } from "../services/risk-notification-
 import { ExpireCanceledSubscriptionsService, ReleaseCommissionsService } from "../services/billing-service.ts";
 import { RetryStorageDeletionsService, SweepOrphanObjectsService } from "../services/storage-service.ts";
 import { PurgeExpiredTrashService } from "../services/trash-service.ts";
+import { SendTrialEmailsService, SendWeeklyDigestService } from "../services/lifecycle-email-service.ts";
 import { sendSuccess } from "../utils/api-response.ts";
 import { ErrorHandler } from "../utils/error-handler.ts";
 
@@ -24,16 +25,27 @@ export class CronController {
     if (!isCronRequest(req)) {
       throw new UnauthorizedException("Acesso restrito ao agendador.", ErrorCode.UNAUTHORIZED);
     }
-    const notifications = await GenerateDueNotificationsService();
-    const risk = await GenerateRiskNotificationsService();
-    const purged = await PurgeExpiredTrashService();
-    const retried = await RetryStorageDeletionsService();
-    const swept = await SweepOrphanObjectsService();
-    const commissions = await ReleaseCommissionsService();
-    const subscriptions = await ExpireCanceledSubscriptionsService();
+    // Um job que falha não derruba os seguintes: o erro vai para o log e o resultado dele fica ausente.
+    const run = async <T>(name: string, job: () => Promise<T>): Promise<T | undefined> => {
+      try {
+        return await job();
+      } catch (err) {
+        console.error("[cron]", name, err);
+        return undefined;
+      }
+    };
+    const notifications = await run("notifications", () => GenerateDueNotificationsService());
+    const risk = await run("risk", () => GenerateRiskNotificationsService());
+    const purged = await run("trash", () => PurgeExpiredTrashService());
+    const retried = await run("storage-retry", () => RetryStorageDeletionsService());
+    const swept = await run("storage-sweep", () => SweepOrphanObjectsService());
+    const commissions = await run("commissions", () => ReleaseCommissionsService());
+    const subscriptions = await run("subscriptions", () => ExpireCanceledSubscriptionsService());
+    const trialEmails = await run("trial-emails", () => SendTrialEmailsService());
+    const weekly = await run("weekly-digest", () => SendWeeklyDigestService());
     return sendSuccess(
       res,
-      { notificationsCreated: notifications.created, riskNotificationsCreated: risk.created, riskEmailsSent: risk.emailed, trashPurged: purged, storageRetried: retried, storageSwept: swept, commissions, subscriptions },
+      { notificationsCreated: notifications?.created, riskNotificationsCreated: risk?.created, riskEmailsSent: risk?.emailed, trashPurged: purged, storageRetried: retried, storageSwept: swept, commissions, subscriptions, trialEmails, weeklyEmailsSent: weekly?.emailed },
       "Daily jobs finished",
     );
   });

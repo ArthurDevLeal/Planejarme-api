@@ -1,4 +1,5 @@
 import { hash } from "bcrypt";
+import { SendWelcomeEmail } from "../lifecycle-email-service.ts";
 import crypto from "node:crypto";
 import { track } from "../../lib/analytics.ts";
 import { prisma } from "../../../lib/prisma.ts";
@@ -115,8 +116,9 @@ export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile
       passwordHash: await hash(crypto.randomBytes(32).toString("base64url"), 8),
       referredById: await ResolveReferrerService(ref, email),
     },
-    select: { id: true },
+    select: { id: true, name: true, email: true },
   });
   await track(user.id, "user_signed_up", { method: provider ?? "oauth" });
+  SendWelcomeEmail(user);
   return { userId: user.id, isNew: true };
 }

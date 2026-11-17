@@ -15,6 +15,7 @@ import { HttpException, ErrorCode } from "../exceptions/root.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { abacatepay, AbacatePayError } from "../lib/abacatepay.ts";
 import { track } from "../lib/analytics.ts";
+import { SendPaymentFailedEmail } from "./lifecycle-email-service.ts";
 
 const DAY_MS = 86_400_000;
 const settings = () => `${webUrl()}/dashboard/configuracoes?secao=plano`;
@@ -237,6 +238,15 @@ async function applyEvent(event: AbacateEvent, now: Date, deps: Dependencies) {
       // A Abacate Pay tenta de novo (retryPolicy); o acesso continua até ela desistir e mandar subscription.cancelled.
       const user = await userBySubscription(subscriptionId);
       if (user) await prisma.user.update({ where: { id: user.id }, data: { subscriptionStatus: "PAST_DUE" } });
+      // E-mail é só aviso: se falhar, o webhook segue respondendo 2xx e o status já mudou.
+      if (user) {
+        try {
+          const contact = await prisma.user.findUnique({ where: { id: user.id }, select: { name: true, email: true } });
+          if (contact) await SendPaymentFailedEmail(contact);
+        } catch (error) {
+          console.error("[email] pagamento recusado", error);
+        }
+      }
       return;
     }
     case "subscription.cancelled": {

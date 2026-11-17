@@ -42,6 +42,7 @@ const UpdateUserSchema = z.object({
   defaultGradingSystem: z.enum(["ARITHMETIC", "WEIGHTED"]).optional(),
   roundingMode: z.enum(["NEAREST", "UP", "DOWN"]).optional(),
   riskEmails: z.boolean().optional(),
+  weeklyEmails: z.boolean().optional(),
 });
 
 const ChangePasswordSchema = z.object({

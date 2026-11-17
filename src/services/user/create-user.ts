@@ -3,6 +3,7 @@ import { track } from "../../lib/analytics.ts";
 import { prisma } from "../../../lib/prisma.ts";
 import { CreateUserSchemaType } from "../../schemas/user-schema.ts";
 import { TRIAL_DAYS } from "../../config/plans.ts";
+import { SendWelcomeEmail } from "../lifecycle-email-service.ts";
 import { ResolveReferrerService } from "../affiliate-service.ts";
 
 export async function CreateUserService(args: CreateUserSchemaType) {
@@ -19,5 +20,6 @@ export async function CreateUserService(args: CreateUserSchemaType) {
     },
   });
   await track(user.id, "user_signed_up", { method: "email" });
+  SendWelcomeEmail(user);
   return user;
 }

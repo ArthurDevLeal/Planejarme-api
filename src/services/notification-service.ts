@@ -5,14 +5,17 @@ export function CreateNotificationService(data: CreateNotificationSchemaType) {
   return prisma.notification.create({ data });
 }
 
+/** Notificações-marca usadas só para deduplicar e-mails; ficam fora das listas. */
+export const MARKER_TYPES = ["RISK_DIGEST", "LIFECYCLE_EMAIL"] as const;
+
 export function FindNotificationByIdService(id: string) {
   return prisma.notification.findUnique({ where: { id } });
 }
 
 export function FindNotificationsByUserService(userId: string) {
   return prisma.notification.findMany({
-    // RISK_DIGEST é só a marca de "e-mail de risco enviado hoje", não aparece no sino.
-    where: { userId, type: { not: "RISK_DIGEST" } },
+    // Marcas de e-mail enviado (resumo de risco, ciclo de vida) não aparecem no sino.
+    where: { userId, type: { notIn: [...MARKER_TYPES] } },
     orderBy: { createdAt: "desc" },
   });
 }

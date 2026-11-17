@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import { mainRouter } from "../src/routes/main-router.ts";
 import { ErrorMiddleware } from "../src/middlewares/errors.ts";
 import { prisma } from "../lib/prisma.ts";
-import { schedule, setFlashcardModelClient, validateFlashcards } from "../src/services/flashcard-service.ts";
+import { formatInterval, previewOf, schedule, setFlashcardModelClient, validateFlashcards } from "../src/services/flashcard-service.ts";
 
 const now = new Date("2026-11-18T12:00:00Z");
 const base = { ease: 2.5, intervalDays: 0, reps: 0, lapses: 0 };
@@ -168,4 +168,23 @@ test("flashcards pela API: criar, limite do plano, estudar, revisar e posse", { 
     await prisma.user.deleteMany({ where: { id: { in: [free.id, other.id] } } });
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
+});
+
+test("formatInterval: limites de cada unidade", () => {
+  assert.equal(formatInterval(0), "1 min");
+  assert.equal(formatInterval(10 * 60_000), "10 min");
+  assert.equal(formatInterval(3 * 3_600_000), "3 h");
+  assert.equal(formatInterval(86_400_000), "1 dia");
+  assert.equal(formatInterval(3 * 86_400_000), "3 dias");
+  assert.equal(formatInterval(60 * 86_400_000), "2 meses");
+  assert.equal(formatInterval(400 * 86_400_000), "1 ano");
+});
+
+test("previewOf: cartão novo bate com schedule()", () => {
+  const p = previewOf(base, now);
+  for (const g of ["again", "hard", "good", "easy"] as const) {
+    assert.equal(p[g], formatInterval(schedule(base, g, now).dueAt.getTime() - now.getTime()));
+  }
+  assert.equal(p.again, "10 min");
+  assert.equal(p.good, "1 dia");
 });

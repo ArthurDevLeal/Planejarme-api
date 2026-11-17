@@ -86,6 +86,19 @@ export function schedule(card: { ease: number; intervalDays: number; reps: numbe
   return { ease: clampEase(nextEase), intervalDays: days, reps: reps + 1, lapses: card.lapses, dueAt: new Date(now.getTime() + days * DAY) };
 }
 
+/** Rótulo pt-BR de um intervalo (ex.: "10 min", "3 dias", "2 meses"). */
+export function formatInterval(ms: number): string {
+  const min = Math.max(1, Math.round(ms / 60_000));
+  if (min < 60) return `${min} min`;
+  const hours = Math.round(ms / 3_600_000);
+  if (ms < DAY) return `${hours} h`;
+  const days = Math.round(ms / DAY);
+  if (days < 30) return days === 1 ? "1 dia" : `${days} dias`;
+  if (days < 365) { const m = Math.round(days / 30); return m === 1 ? "1 mês" : `${m} meses`; }
+  const years = Math.round(days / 365);
+  return years === 1 ? "1 ano" : `${years} anos`;
+}
+
 const unavailable = (message: string) => new HttpException(message, ErrorCode.SERVICE_UNAVAILABLE, 503);
 const TOO_LITTLE_TEXT =
   "Os materiais marcados têm pouco texto para montar um baralho. Marque mais materiais ou envie um PDF com o conteúdo da matéria.";
@@ -185,15 +198,24 @@ export async function GetDeckService(userId: string, id: string) {
 }
 
 const STUDY_MAX = 50;
+const STUDY_SELECT = { ...CARD_SELECT, ease: true, intervalDays: true, lapses: true };
+const GRADES: Grade[] = ["again", "hard", "good", "easy"];
+
+/** Quando o cartão venceria em cada nota se fosse avaliado em `now`. */
+export function previewOf(card: Parameters<typeof schedule>[0], now: Date) {
+  return Object.fromEntries(GRADES.map((g) => [g, formatInterval(schedule(card, g, now).dueAt.getTime() - now.getTime())])) as Record<Grade, string>;
+}
 
 /** Cartões vencidos (dueAt <= agora), do mais antigo ao mais novo, até 50. `total` é quantos vencidos existem. */
 export async function StudyDeckService(userId: string, id: string) {
   await findOwnDeck(userId, id);
-  const where = { deckId: id, dueAt: { lte: new Date() } };
-  const [cards, total] = await Promise.all([
-    prisma.flashcard.findMany({ where, select: CARD_SELECT, orderBy: [{ dueAt: "asc" }, { position: "asc" }], take: STUDY_MAX }),
+  const now = new Date();
+  const where = { deckId: id, dueAt: { lte: now } };
+  const [rows, total] = await Promise.all([
+    prisma.flashcard.findMany({ where, select: STUDY_SELECT, orderBy: [{ dueAt: "asc" }, { position: "asc" }], take: STUDY_MAX }),
     prisma.flashcard.count({ where }),
   ]);
+  const cards = rows.map(({ ease, intervalDays, lapses, ...card }) => ({ ...card, preview: previewOf({ ease, intervalDays, reps: card.reps, lapses }, now) }));
   return { cards, total };
 }
 

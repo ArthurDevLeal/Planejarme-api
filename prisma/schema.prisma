@@ -38,6 +38,8 @@ model User {
   abacateSubscriptionId String?   @unique
   subscriptionStatus    String?
   currentPeriodEnd      DateTime?
+  // Fim do teste grátis do Pro; null = sem teste.
+  trialEndsAt           DateTime?
 
   // Afiliados. referralCode e affiliateStatus (ACTIVE | BLOCKED) só existem para quem entrou no programa.
   referralCode         String?   @unique

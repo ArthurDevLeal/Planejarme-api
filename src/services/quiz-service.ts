@@ -2,7 +2,6 @@ import z from "zod";
 import { prisma } from "../../lib/prisma.ts";
 import { PLANS, planOf } from "../config/plans.ts";
 import { BadRequestsException } from "../exceptions/bad-requests.ts";
-import { ForbiddenException } from "../exceptions/forbidden.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode, HttpException } from "../exceptions/root.ts";
 import { CreateQuizSchemaType, SubmitQuizAnswersSchemaType } from "../schemas/quiz-schema.ts";
@@ -12,7 +11,6 @@ import { ensureMaterialText } from "./material-text-service.ts";
 // Grátis e com saída em JSON schema; testado em 2026-11-16 (10 questões boas em ~70 s). Trocar por OPENROUTER_MODEL.
 export const DEFAULT_QUIZ_MODEL = "nvidia/nemotron-3.5-super-vl:free";
 const quizModelId = () => process.env.OPENROUTER_MODEL?.trim() || DEFAULT_QUIZ_MODEL;
-export const QUIZ_PRO_ONLY_MESSAGE = "O simulado com IA é do plano Pro. Assine o Pro para gerar simulados com seus materiais.";
 // Teto do texto enviado ao modelo: ~120 mil caracteres ≈ 30 mil tokens em pt-BR (~4 caracteres/token). Segura custo e tempo de resposta.
 export const MAX_INPUT_CHARS = 120_000;
 // Refazer copia as questões sem chamar o modelo; o prefixo marca a cópia e a tira da contagem do limite mensal.
@@ -198,7 +196,6 @@ const GENERATION_FAILED = "Não foi possível gerar o simulado agora. Tente de n
 
 export async function CreateQuizService(userId: string, data: CreateQuizSchemaType) {
   const usage = await quizUsage(userId);
-  if (usage.plan !== "PRO") throw new ForbiddenException(QUIZ_PRO_ONLY_MESSAGE, ErrorCode.PLAN_LIMIT_REACHED);
   if (usage.used >= usage.limit) {
     const date = usage.renewsAt.toLocaleDateString("pt-BR", { timeZone: "UTC" });
     throw new HttpException(`Você já gerou os ${usage.limit} simulados do mês. O limite renova em ${date}.`, ErrorCode.PLAN_LIMIT_REACHED, 429);

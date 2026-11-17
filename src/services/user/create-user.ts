@@ -2,6 +2,7 @@ import { hash } from "bcrypt";
 import { track } from "../../lib/analytics.ts";
 import { prisma } from "../../../lib/prisma.ts";
 import { CreateUserSchemaType } from "../../schemas/user-schema.ts";
+import { TRIAL_DAYS } from "../../config/plans.ts";
 import { ResolveReferrerService } from "../affiliate-service.ts";
 
 export async function CreateUserService(args: CreateUserSchemaType) {
@@ -10,6 +11,7 @@ export async function CreateUserService(args: CreateUserSchemaType) {
       name: args.name,
       email: args.email,
       passwordHash: await hash(args.password, 8),
+      trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000),
       phone: args.phone,
       course: args.course,
       institution: args.institution,

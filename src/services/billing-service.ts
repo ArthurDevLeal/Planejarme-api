@@ -10,7 +10,7 @@ import {
   subscriptionMethods,
   webUrl,
 } from "../config/billing.ts";
-import { PLANS } from "../config/plans.ts";
+import { PLANS, effectivePlan } from "../config/plans.ts";
 import { HttpException, ErrorCode } from "../exceptions/root.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { abacatepay, AbacatePayError } from "../lib/abacatepay.ts";
@@ -32,11 +32,14 @@ export function GetPublicPlansService() {
 export async function GetBillingService(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, plan: true, subscriptionStatus: true, currentPeriodEnd: true },
+    select: { email: true, plan: true, subscriptionStatus: true, currentPeriodEnd: true, trialEndsAt: true },
   });
   if (!user) throw new NotFoundException("Usuário não encontrado.", ErrorCode.USER_NOT_FOUND);
   return {
-    plan: user.plan,
+    // Efetivo: o web libera os recursos do Pro durante o teste.
+    plan: effectivePlan(user),
+    trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+    trialActive: user.plan !== "PRO" && effectivePlan(user) === "PRO",
     subscriptionStatus: user.subscriptionStatus,
     currentPeriodEnd: user.currentPeriodEnd,
     prices: { monthlyCents: PRO_PRICES.monthly.cents, yearlyCents: PRO_PRICES.yearly.cents },

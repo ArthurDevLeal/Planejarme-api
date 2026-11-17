@@ -2,6 +2,7 @@ import { hash } from "bcrypt";
 import crypto from "node:crypto";
 import { track } from "../../lib/analytics.ts";
 import { prisma } from "../../../lib/prisma.ts";
+import { TRIAL_DAYS } from "../../config/plans.ts";
 import { ResolveReferrerService } from "../affiliate-service.ts";
 
 export type OAuthProvider = "google" | "github";
@@ -110,6 +111,7 @@ export async function FindOrCreateOAuthUserService({ email, name }: OAuthProfile
     data: {
       email: email.toLowerCase(),
       name: name.slice(0, 100),
+      trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000),
       passwordHash: await hash(crypto.randomBytes(32).toString("base64url"), 8),
       referredById: await ResolveReferrerService(ref, email),
     },

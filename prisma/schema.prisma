@@ -68,6 +68,7 @@ model User {
   shareInvites  ShareInvite[]
   classTemplates ClassTemplate[]
   quizzes       Quiz[]
+  flashcardDecks FlashcardDeck[]
 }
 
 // Eventos do webhook da Abacate Pay já processados: o mesmo evento entregue duas vezes não muda nada na segunda.
@@ -175,6 +176,7 @@ model Discipline {
   shareInvites ShareInvite[]
   classTemplate ClassTemplate?
   quizzes      Quiz[]
+  flashcardDecks FlashcardDeck[]
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -418,4 +420,39 @@ model Quiz {
 
   @@index([userId, createdAt])
   @@index([disciplineId])
+}
+
+model FlashcardDeck {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  disciplineId String
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  title        String
+  materialIds  String[]
+  // READY | FAILED
+  status       String     @default("READY")
+  model        String
+  inputTokens  Int        @default(0)
+  outputTokens Int        @default(0)
+  createdAt    DateTime   @default(now())
+  cards        Flashcard[]
+
+  @@index([userId, createdAt])
+}
+
+model Flashcard {
+  id           String        @id @default(uuid())
+  deckId       String
+  deck         FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  position     Int
+  front        String
+  back         String
+  ease         Float         @default(2.5)
+  intervalDays Int           @default(0)
+  reps         Int           @default(0)
+  lapses       Int           @default(0)
+  dueAt        DateTime      @default(now())
+
+  @@index([deckId, dueAt])
 }

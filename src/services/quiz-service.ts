@@ -5,12 +5,11 @@ import { BadRequestsException } from "../exceptions/bad-requests.ts";
 import { NotFoundException } from "../exceptions/not-found.ts";
 import { ErrorCode, HttpException } from "../exceptions/root.ts";
 import { CreateQuizSchemaType, SubmitQuizAnswersSchemaType } from "../schemas/quiz-schema.ts";
-import { ensureMaterialText } from "./material-text-service.ts";
+import { callOpenRouter, openRouterModelId } from "../lib/openrouter.ts";
+import { gatherMaterialText } from "./material-text-service.ts";
 
-// OpenRouter: o dono troca o modelo por OPENROUTER_MODEL sem deploy de código. Padrão barato e com suporte a json_schema.
-// Grátis e com saída em JSON schema; testado em 2026-11-16 (10 questões boas em ~70 s). Trocar por OPENROUTER_MODEL.
-export const DEFAULT_QUIZ_MODEL = "nvidia/nemotron-3.5-super-vl:free";
-const quizModelId = () => process.env.OPENROUTER_MODEL?.trim() || DEFAULT_QUIZ_MODEL;
+export { DEFAULT_QUIZ_MODEL } from "../lib/openrouter.ts";
+const quizModelId = openRouterModelId;
 // Teto do texto enviado ao modelo: ~120 mil caracteres ≈ 30 mil tokens em pt-BR (~4 caracteres/token). Segura custo e tempo de resposta.
 export const MAX_INPUT_CHARS = 120_000;
 // Refazer copia as questões sem chamar o modelo; o prefixo marca a cópia e a tira da contagem do limite mensal.
@@ -25,14 +24,14 @@ export type QuizModelResult = { questions: unknown; model: string; inputTokens: 
 export type QuizModelClient = (input: QuizModelInput) => Promise<QuizModelResult>;
 
 /** Nem todo modelo respeita json_schema: aceita cercas ```json, texto em volta e array solto. null quando não há JSON. */
-export function parseModelJson(text: string): unknown {
+export function parseModelJson(text: string, key = "questions"): unknown {
   const cleaned = text.replace(/```(?:json)?/gi, "").trim();
   const candidates = [cleaned, cleaned.slice(cleaned.indexOf("{"), cleaned.lastIndexOf("}") + 1), cleaned.slice(cleaned.indexOf("["), cleaned.lastIndexOf("]") + 1)];
   for (const candidate of candidates) {
     if (!candidate) continue;
     try {
       const value = JSON.parse(candidate) as unknown;
-      return Array.isArray(value) ? value : (value as { questions?: unknown } | null)?.questions ?? null;
+      return Array.isArray(value) ? value : (value as Record<string, unknown> | null)?.[key] ?? null;
     } catch {
       // tenta o próximo recorte
     }
@@ -40,69 +39,36 @@ export function parseModelJson(text: string): unknown {
   return null;
 }
 
-type OpenRouterResponse = {
-  model?: string;
-  choices?: { finish_reason?: string | null; message?: { content?: string | null } }[];
-  usage?: { prompt_tokens?: number; completion_tokens?: number };
-};
-
 const openRouterClient: QuizModelClient = async ({ system, prompt, materialIds }) => {
-  const model = quizModelId();
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      ...(process.env.WEB_URL ? { "HTTP-Referer": process.env.WEB_URL } : {}),
-      "X-Title": "Planejar.me",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 32000,
-      // Raciocínio desligado: no nível avançado o modelo gastava quase todo o limite pensando e o JSON saía cortado.
-      // Questões a partir de um texto dado não precisam dele. Modelo sem raciocínio ignora.
-      reasoning: { enabled: false },
-      messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "quiz",
-          strict: true,
-          schema: {
+  const { content, model, inputTokens, outputTokens } = await callOpenRouter({
+    system,
+    user: prompt,
+    schemaName: "quiz",
+    jsonSchema: {
+      type: "object",
+      properties: {
+        questions: {
+          type: "array",
+          items: {
             type: "object",
             properties: {
-              questions: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    prompt: { type: "string" },
-                    options: { type: "array", items: { type: "string" } },
-                    answerIndex: { type: "integer" },
-                    explanation: { type: "string" },
-                    sourceMaterialId: { type: "string", enum: materialIds },
-                  },
-                  required: ["prompt", "options", "answerIndex", "explanation", "sourceMaterialId"],
-                  additionalProperties: false,
-                },
-              },
+              prompt: { type: "string" },
+              options: { type: "array", items: { type: "string" } },
+              answerIndex: { type: "integer" },
+              explanation: { type: "string" },
+              sourceMaterialId: { type: "string", enum: materialIds },
             },
-            required: ["questions"],
+            required: ["prompt", "options", "answerIndex", "explanation", "sourceMaterialId"],
             additionalProperties: false,
           },
         },
       },
-    }),
-    // Modelos grátis da OpenRouter podem levar mais de 1 min; a função na Vercel (Fluid) aguenta até 300 s.
-    signal: AbortSignal.timeout(Number(process.env.OPENROUTER_TIMEOUT_MS) || 240_000),
+      required: ["questions"],
+      additionalProperties: false,
+    },
   });
-  if (!response.ok) throw new Error(`OpenRouter respondeu ${response.status}: ${(await response.text()).slice(0, 300)}`);
-  const body = (await response.json()) as OpenRouterResponse;
-  const choice = body.choices?.[0];
-  const usage = { model: body.model ?? model, inputTokens: body.usage?.prompt_tokens ?? 0, outputTokens: body.usage?.completion_tokens ?? 0 };
-  // "length" corta o JSON no meio; "content_filter"/"error" não têm questões.
-  if (choice?.finish_reason !== "stop" || !choice.message?.content) return { questions: null, ...usage };
-  return { questions: parseModelJson(choice.message.content), ...usage };
+  // content null = resposta cortada ou filtrada: sem questões.
+  return { questions: content ? parseModelJson(content) : null, model, inputTokens, outputTokens };
 };
 
 let modelClient: QuizModelClient | null = null;
@@ -208,41 +174,11 @@ export async function CreateQuizService(userId: string, data: CreateQuizSchemaTy
     if (!evaluation) throw new NotFoundException("Avaliação não encontrada nesta disciplina.", ErrorCode.EVALUATION_NOT_FOUND);
   }
 
-  const select = { id: true, title: true, mimeType: true, storagePath: true, textContent: true, textExtractedAt: true };
-  let materials;
-  if (data.materialIds) {
-    const ids = [...new Set(data.materialIds)];
-    const found = await prisma.material.findMany({
-      where: { id: { in: ids }, deletedAt: null, OR: [{ userId }, { userId: null, discipline: { userId } }] },
-      select,
-    });
-    if (found.length !== ids.length) throw new NotFoundException("Um dos materiais escolhidos não foi encontrado.", ErrorCode.MATERIAL_NOT_FOUND);
-    materials = ids.map((id) => found.find((material) => material.id === id)!);
-  } else {
-    // A disciplina já foi conferida no controller: os materiais dela são do usuário.
-    materials = await prisma.material.findMany({ where: { disciplineId: data.disciplineId, deletedAt: null }, select, orderBy: { createdAt: "asc" } });
-  }
-
-  const withText: { id: string; title: string; text: string }[] = [];
-  for (const material of materials) {
-    let text: string;
-    try {
-      text = await ensureMaterialText(material);
-    } catch {
-      throw unavailable(`Não foi possível ler o material "${material.title}" agora. Tente de novo em instantes.`);
-    }
-    if (text) withText.push({ id: material.id, title: material.title, text });
-  }
-  if (withText.length === 0) {
-    // Gratuito não envia arquivos: não mandar fazer o que o plano não deixa.
-    if (materials.length === 0 && usage.limit < PLANS.PRO.quizzesPerMonth) {
-      throw new BadRequestsException("O simulado é gerado a partir dos materiais da disciplina, e enviar arquivos é do plano Pro.", ErrorCode.INVALID_DATA);
-    }
-    throw new BadRequestsException(
-      "Nenhum material com texto legível. Envie PDF, Word ou TXT com texto (PDF escaneado não serve) para gerar o simulado.",
-      ErrorCode.INVALID_DATA,
-    );
-  }
+  const withText = await gatherMaterialText(userId, data.disciplineId, data.materialIds, {
+    freeNoMaterials: usage.limit < PLANS.PRO.quizzesPerMonth,
+    freeMessage: "O simulado é gerado a partir dos materiais da disciplina, e enviar arquivos é do plano Pro.",
+    noTextMessage: "Nenhum material com texto legível. Envie PDF, Word ou TXT com texto (PDF escaneado não serve) para gerar o simulado.",
+  });
 
   // shortcut: 503 para a web repassar a frase (400 vira "dados inválidos" genérico); trocar se o cliente passar a mostrar 400 da API.
   if (withText.reduce((total, material) => total + material.text.length, 0) < MIN_INPUT_CHARS) throw unavailable(TOO_LITTLE_TEXT);

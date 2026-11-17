@@ -19,6 +19,7 @@ import { folderRouter } from "./folder-router.ts";
 import { publicShareRouter, shareRouter } from "./share-router.ts";
 import { classRouter, publicClassRouter } from "./class-template-router.ts";
 import { quizRouter } from "./quiz-router.ts";
+import { flashcardRouter } from "./flashcard-router.ts";
 
 const mainRouter = Router();
 
@@ -39,6 +40,7 @@ mainRouter.use("/public/shares", publicShareRouter);
 mainRouter.use("/public/class", publicClassRouter);
 mainRouter.use("/class", classRouter);
 mainRouter.use("/quizzes", quizRouter);
+mainRouter.use("/flashcards", flashcardRouter);
 // Sem login: a landing lê preços e limites daqui para não repetir números.
 mainRouter.get("/public/plans", (_req, res) => sendSuccess(res, GetPublicPlansService()));
 mainRouter.use("/billing", billingRouter);

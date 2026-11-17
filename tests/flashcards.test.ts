@@ -15,7 +15,7 @@ const days = (card: ReturnType<typeof schedule>) => (card.dueAt.getTime() - now.
 
 test("flashcards: again mantém reps, conta lapso, vence em 10 min e baixa a facilidade", () => {
   const next = schedule({ ...base, reps: 3, intervalDays: 10 }, "again", now);
-  assert.deepEqual([next.reps, next.lapses, next.intervalDays, next.ease], [3, 1, 0, 2.3]);
+  assert.deepEqual([next.reps, next.lapses, next.intervalDays, next.ease], [0, 1, 0, 2.3]);
   assert.equal(next.dueAt.getTime() - now.getTime(), 10 * 60_000);
 });
 
@@ -23,6 +23,7 @@ test("flashcards: hard, good e easy seguem o SM-2 simplificado", () => {
   const hard = schedule({ ...base, reps: 2, intervalDays: 10 }, "hard", now);
   assert.deepEqual([hard.intervalDays, hard.ease, hard.reps], [12, 2.35, 3]);
   assert.equal(schedule(base, "hard", now).intervalDays, 1, "hard nunca passa de 1 dia para baixo");
+  assert.equal(schedule({ ...base, reps: 1, intervalDays: 1 }, "hard", now).intervalDays, 2, "hard sempre avança pelo menos 1 dia");
 
   assert.equal(schedule(base, "good", now).intervalDays, 1);
   assert.equal(schedule({ ...base, reps: 1, intervalDays: 1 }, "good", now).intervalDays, 3);
@@ -137,6 +138,13 @@ test("flashcards pela API: criar, limite do plano, estudar, revisar e posse", { 
     const after = await call(token, `/flashcards/decks/${deck.id}/study`);
     assert.equal(after.body.data.total, 9);
     assert.equal(after.body.data.cards.length, 9);
+
+    // "again" adia 10 min: o cartão não volta no estudo seguinte.
+    const againId = after.body.data.cards[0].id;
+    await call(token, `/flashcards/cards/${againId}/review`, "POST", { grade: "again" });
+    const afterAgain = await call(token, `/flashcards/decks/${deck.id}/study`);
+    assert.equal(afterAgain.body.data.cards.some((card: { id: string }) => card.id === againId), false);
+    assert.equal(afterAgain.body.data.total, 8);
 
     // Posse: outro usuário não vê, não estuda, não revisa, não apaga.
     const otherToken = tokenOf(other.id);

@@ -66,16 +66,17 @@ export function validateFlashcards(raw: unknown, count: number): { front: string
 
 const TEN_MINUTES = 10 * 60_000;
 const DAY = 86_400_000;
+// Facilidade sempre entre 1.3 e 2.8: abaixo disso o intervalo nunca cresce, acima dele cresce rápido demais.
 const clampEase = (ease: number) => Math.min(2.8, Math.max(1.3, ease));
 
 /** SM-2 simplificado. `now` entra por parâmetro para o cálculo ser puro. */
 export function schedule(card: { ease: number; intervalDays: number; reps: number; lapses: number }, grade: Grade, now: Date) {
   const { ease, intervalDays, reps } = card;
   if (grade === "again") {
-    return { ease: clampEase(ease - 0.2), intervalDays: 0, reps, lapses: card.lapses + 1, dueAt: new Date(now.getTime() + TEN_MINUTES) };
+    return { ease: clampEase(ease - 0.2), intervalDays: 0, reps: 0, lapses: card.lapses + 1, dueAt: new Date(now.getTime() + TEN_MINUTES) };
   }
   let days: number;
-  if (grade === "hard") days = Math.max(1, Math.round(intervalDays * 1.2));
+  if (grade === "hard") days = Math.max(intervalDays + 1, Math.round(intervalDays * 1.2));
   else {
     days = reps === 0 ? 1 : reps === 1 ? 3 : Math.round(intervalDays * ease);
     if (grade === "easy") days = Math.round(days * 1.3);
@@ -115,7 +116,8 @@ export async function CreateDeckService(userId: string, data: CreateDeckSchemaTy
 
   const discipline = await prisma.discipline.findUnique({ where: { id: data.disciplineId }, select: { name: true } });
   const now = new Date();
-  const title = `${discipline?.name ?? "Baralho"} — ${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const day = now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
+  const title = `${discipline?.name ?? "Baralho"} — ${day}`;
   const base = { userId, disciplineId: data.disciplineId, title, materialIds: withText.map((material) => material.id) };
 
   let result: FlashcardModelResult;
@@ -183,26 +185,15 @@ export async function GetDeckService(userId: string, id: string) {
 }
 
 const STUDY_MAX = 50;
-const STUDY_NEW = 10;
 
-/** Cartões vencidos primeiro (até 50); se sobrar espaço, completa com até 10 nunca revisados. `total` é quantos vencidos existem. */
+/** Cartões vencidos (dueAt <= agora), do mais antigo ao mais novo, até 50. `total` é quantos vencidos existem. */
 export async function StudyDeckService(userId: string, id: string) {
   await findOwnDeck(userId, id);
   const where = { deckId: id, dueAt: { lte: new Date() } };
-  const [due, total] = await Promise.all([
+  const [cards, total] = await Promise.all([
     prisma.flashcard.findMany({ where, select: CARD_SELECT, orderBy: [{ dueAt: "asc" }, { position: "asc" }], take: STUDY_MAX }),
     prisma.flashcard.count({ where }),
   ]);
-  let cards = due;
-  if (due.length < STUDY_MAX) {
-    const fresh = await prisma.flashcard.findMany({
-      where: { deckId: id, reps: 0, id: { notIn: due.map((card) => card.id) } },
-      select: CARD_SELECT,
-      orderBy: { position: "asc" },
-      take: Math.min(STUDY_NEW, STUDY_MAX - due.length),
-    });
-    cards = [...due, ...fresh];
-  }
   return { cards, total };
 }
 

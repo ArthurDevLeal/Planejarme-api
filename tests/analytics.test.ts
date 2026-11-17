@@ -11,3 +11,14 @@ test("track não faz nada e não lança sem POSTHOG_KEY", async () => {
     if (saved !== undefined) process.env.POSTHOG_KEY = saved;
   }
 });
+
+test("track não envia durante node --test mesmo com POSTHOG_KEY", async () => {
+  const saved = process.env.POSTHOG_KEY;
+  process.env.POSTHOG_KEY = "phc_fake";
+  try {
+    await assert.doesNotReject(track("user-1", "user_signed_up"));
+  } finally {
+    if (saved === undefined) delete process.env.POSTHOG_KEY;
+    else process.env.POSTHOG_KEY = saved;
+  }
+});

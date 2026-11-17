@@ -31,6 +31,8 @@ model User {
   // Avisos de risco (nota ou falta) também por e-mail, no máximo um resumo por dia.
   riskEmails           Boolean @default(true)
   weeklyEmails         Boolean @default(true)
+  // Token do feed iCal (/public/calendar/<token>.ics); null = feed desligado.
+  calendarToken        String? @unique
 
   // Plano e cobrança (Abacate Pay). O webhook é quem mantém estes campos; FREE é o padrão de todos.
   // subscriptionStatus: ACTIVE | PAST_DUE | CANCELED. currentPeriodEnd: até quando o Pro está pago.
@@ -68,6 +70,7 @@ model User {
   shareInvites  ShareInvite[]
   classTemplates ClassTemplate[]
   quizzes       Quiz[]
+  reviewChecks  ReviewCheck[]
 }
 
 // Eventos do webhook da Abacate Pay já processados: o mesmo evento entregue duas vezes não muda nada na segunda.
@@ -322,9 +325,24 @@ model Evaluation {
 
   disciplineId String
   discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  reviewChecks ReviewCheck[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Sessão de revisão (D-7, D-3, D-1 da prova) marcada como feita. day = YYYY-MM-DD em Brasília.
+model ReviewCheck {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evaluationId String
+  evaluation   Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  day          String
+  createdAt    DateTime   @default(now())
+
+  @@unique([evaluationId, day])
+  @@index([userId, day])
 }
 
 model Task {
